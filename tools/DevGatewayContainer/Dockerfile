@@ -6,9 +6,11 @@ WORKDIR /app
 ARG DEV_GATEWAY_DOWNLOAD_URL=https://download.microsoft.com/download/c/4/a/c4a0a569-87cd-4633-a81e-26ef3d4266df/DevGateway.zip
 
 # Combine RUN commands to reduce layers
-RUN apt-get update && apt-get install -y curl sudo unzip && \
+# Note: -k flag needed for Microsoft download URL due to certificate chain issues in container
+RUN apt-get update && apt-get install -y curl sudo unzip ca-certificates && \
+    update-ca-certificates && \
     curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash && \
-    curl ${DEV_GATEWAY_DOWNLOAD_URL} -O && \
+    curl -k ${DEV_GATEWAY_DOWNLOAD_URL} -O && \
     unzip -o DevGateway.zip -d DevGateway && \
     rm -rf DevGateway.zip && \
     rm -rf /var/lib/apt/lists/* && \
