@@ -21,9 +21,10 @@ console.log('*******************************************************************
 
 module.exports = merge(baseConfig, {
     mode: "development",
-    devtool: "source-map",
+    devtool: "eval",
     cache: {
         type: 'filesystem',
+        maxMemoryGenerations: 3,
         allowCollectingMemory: true,
     },
     plugins: [
@@ -47,6 +48,33 @@ module.exports = merge(baseConfig, {
             console.log('*********************************************************************');
             console.log('****             DevServer is listening on port 60006            ****');
             console.log('*********************************************************************');
+
+            // Memory monitoring setup
+            let memoryCheckInterval;
+            const startMemoryMonitoring = () => {
+                const logMemoryUsage = () => {
+                    const usage = process.memoryUsage();
+                    const heapStats = require('v8').getHeapStatistics();
+                    console.log(`📊 Memory Usage - Heap: ${Math.round(usage.heapUsed/1024/1024)}MB/${Math.round(heapStats.heap_size_limit/1024/1024)}MB | RSS: ${Math.round(usage.rss/1024/1024)}MB`);
+                };
+                
+                // Log memory every 30 seconds
+                memoryCheckInterval = setInterval(logMemoryUsage, 30000);
+                logMemoryUsage(); // Initial log
+                
+                // Cleanup on process exit
+                process.on('SIGINT', () => {
+                    if (memoryCheckInterval) clearInterval(memoryCheckInterval);
+                });
+            };
+            
+            // Enable memory monitoring based on environment variable
+            if (process.env.ENABLE_MEMORY_MONITORING === 'true') {
+                console.log('📊 Memory monitoring enabled via ENABLE_MEMORY_MONITORING=true');
+                startMemoryMonitoring();
+            } else {
+                console.log('📊 Memory monitoring disabled. Set ENABLE_MEMORY_MONITORING=true to enable');
+            }
 
             // Add JSON body parsing middleware for our APIs
             devServer.app.use(express.json());

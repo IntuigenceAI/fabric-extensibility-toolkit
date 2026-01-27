@@ -185,6 +185,19 @@ export interface UpdateItemDefinitionRequest {
   definition: ItemDefinition;
 }
 
+export interface MoveItemRequest {
+  targetFolderId?: string;
+}
+
+export interface BulkMoveItemsRequest {
+  items: string[];
+  targetFolderId?: string;
+}
+
+export interface MovedItems {
+  value: Item[];
+}
+
 // Folder types
 export interface Folder {
   id: string;

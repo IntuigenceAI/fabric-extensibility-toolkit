@@ -189,14 +189,17 @@ $environments = @{
     "dev" = @{
         "{{FRONTEND_URL}}" = "http://localhost:60006/"
         "{{LOG_LEVEL}}" = "debug"
+        "{{ENVIRONMENT_DISPLAY_NAME_SUFFIX}}" = "-dev"
     }
     "test" = @{
-        "{{FRONTEND_URL}}" = "https://your-staging-url.azurestaticapps.net/"
+        "{{FRONTEND_URL}}" = "https://test-fe.yourappdomain.com/"
         "{{LOG_LEVEL}}" = "info"
+        "{{ENVIRONMENT_DISPLAY_NAME_SUFFIX}}" = "-test"
     }
     "prod" = @{
-        "{{FRONTEND_URL}}" = "https://your-production-url.azurestaticapps.net/"
+        "{{FRONTEND_URL}}" = "https://prod-fe.yourappdomain.com/"
         "{{LOG_LEVEL}}" = "warn"
+        "{{ENVIRONMENT_DISPLAY_NAME_SUFFIX}}" = ""
     }
 }
 

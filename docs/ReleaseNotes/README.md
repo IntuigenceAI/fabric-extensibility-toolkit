@@ -9,9 +9,10 @@ docs/ReleaseNotes/
 ├── README.md (this file)
 ├── 2025/
 │   ├── v2025.11.md
-│   └── v2025.12.md (future)
+│   ├── v2025.12.md
+│   └── v2025.12.1.md
 ├── 2026/
-│   └── v2026.01.md (future)
+│   └── v2026.01.md
 └── ...
 ```
 
@@ -31,6 +32,7 @@ Each release note file follows the naming convention: `v{YYYY}.{MM}[.{P}].md`
 
 ## Latest Releases
 
+- **[v2026.01](2026/v2026.01.md)** - Enhanced toolkit with new Dialog Control, improved Client SDK capabilities, and memory management optimizations
 - **[v2025.12.1](2025/v2025.12.1.md)** - Patch release with critical bug fixes, security improvements, and stability enhancements
 - **[v2025.12](2025/v2025.12.md)** - Major toolkit enhancement with standardized base components and SCSS architecture
 
