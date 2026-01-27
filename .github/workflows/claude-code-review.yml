@@ -1,0 +1,52 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  claude-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code Review
+        id: claude-review
+        uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.CLAUDE_PR_REVIEW_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+          direct_prompt: |
+            Please review this pull request and provide feedback on:
+
+            ## PR Size & Scope (PRIORITY CHECK)
+            First, evaluate if this PR follows trunk-based development guidelines:
+            - Is it focused on a single concern? (If doing multiple things, suggest splitting)
+            - Would it be better as a stacked PR using Graphite?
+            - If >400 lines changed or >10 files, suggest how to decompose it
+
+            ## Code Quality
+            - Code quality and best practices
+            - Potential bugs or issues
+            - Performance considerations
+            - Security concerns (especially for Fabric workload development)
+            - TypeScript/React best practices for frontend changes
+            - C#/.NET best practices for backend changes
+
+            ## Fabric-Specific Checks
+            - Proper use of Fabric SDK APIs
+            - OneLake/Eventhouse integration patterns
+            - Authentication and authorization handling
+            - Tenant isolation considerations
+
+            Be constructive and helpful. Smaller PRs = faster reviews = faster shipping.
