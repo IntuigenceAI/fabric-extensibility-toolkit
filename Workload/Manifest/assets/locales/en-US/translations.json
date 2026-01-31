@@ -7,7 +7,7 @@
     "Workload_Hub_GetStarted_1_Title": "Get Started",
     "Workload_Hub_GetStarted_1_Sub_Title": "Create your first Agent Session",
     "Workload_Hub_GetStarted_1_Description": "Start chatting with PAM to explore your plant data",
-    "HelloWorldItem_DisplayName": "Hello World",
-    "HelloWorldItem_DisplayName_Plural": "Hello Worlds",
-    "HelloWorldItem_Description": "A Hello World Item to start your Dev Experience"
+    "IntuigenceApp_DisplayName": "IntuigenceAI",
+    "IntuigenceApp_DisplayName_Plural": "IntuigenceAI",
+    "IntuigenceApp_Description": "AI-powered plant intelligence with PAM, ACE, MAX, and ELLA agents"
 }

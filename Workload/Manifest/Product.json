@@ -4,9 +4,9 @@
     "displayName": "Workload_Display_Name",
     "fullDisplayName": "Workload_Full_Display_Name",
     "description": "Workload_Description",
-    "favicon": "assets/images/Workload_Icon.png",
+    "favicon": "assets/images/IntuigenceAI_Icon.png",
     "icon": {
-      "name": "assets/images/Workload_Icon.png"
+      "name": "assets/images/IntuigenceAI_Icon.png"
     },
     "homePage": {
       "learningMaterials": [
@@ -22,20 +22,20 @@
         "customActions": [
         ]},
         "recommendedItemTypes": [
-          "HelloWorld"
+          "IntuigenceApp"
         ]
     },
     "createExperience": {
       "description": "Workload_Description",
       "cards": [
         {
-          "title": "HelloWorldItem_DisplayName",
-          "description": "HelloWorldItem_Description",
+          "title": "IntuigenceApp_DisplayName",
+          "description": "IntuigenceApp_Description",
           "icon": {
-            "name": "assets/images/HelloWorldItem_Icon.png"
+            "name": "assets/images/IntuigenceAI_Icon.png"
           },
           "icon_small": {
-            "name": "assets/images/HelloWorldItem_Icon.png"
+            "name": "assets/images/IntuigenceAI_Icon.png"
           },
           "availableIn": [
             "home",
@@ -43,7 +43,7 @@
             "workspace-plus-new",
             "workspace-plus-new-teams"
           ],
-          "itemType": "HelloWorld",
+          "itemType": "IntuigenceApp",
           "createItemDialogConfig": {
             "onCreationFailure": { "action": "item.onCreationFailure" },
             "onCreationSuccess": { "action": "item.onCreationSuccess" }
