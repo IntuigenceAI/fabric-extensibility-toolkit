@@ -2,7 +2,7 @@ import React from "react";
 import { Route, Router, Switch } from "react-router-dom";
 import { History } from "history";
 import { WorkloadClientAPI } from "@ms-fabric/workload-client";
-import { HelloWorldItemEditor} from "./items/HelloWorldItem";
+import { IntuigenceAppEditor } from "./items/IntuigenceApp";
 import { ConditionalPlaygroundRoutes } from "./playground/ConditionalPlaygroundRoutes";
 
 /*
@@ -43,10 +43,10 @@ export function App({ history, workloadClient }: AppProps) {
             </div>
         </Route>    
         <Switch>
-            {/* Routings for the Hello World Item Editor */}
-            <Route path="/HelloWorldItem-editor/:itemObjectId">
-                <HelloWorldItemEditor
-                    workloadClient={workloadClient} data-testid="HelloWorldItem-editor" />
+            {/* Routings for the IntuigenceAI App Editor */}
+            <Route path="/IntuigenceAppItem-editor/:itemObjectId?">
+                <IntuigenceAppEditor
+                    workloadClient={workloadClient} data-testid="IntuigenceAppItem-editor" />
             </Route>
 
             {/* Conditionally loaded playground routes (only in development) */}
