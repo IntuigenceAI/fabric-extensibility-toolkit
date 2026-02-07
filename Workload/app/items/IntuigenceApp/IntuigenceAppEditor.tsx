@@ -35,12 +35,15 @@ export function IntuigenceAppEditor({ workloadClient }: PageProps) {
     useEffect(() => {
         async function loadFabricContext() {
             try {
-                // For Phase 1, we just pass the item ID
-                // Workspace info can be added in Phase 2 via FabricPlatformAPIClient
+                // Initialize context with basic info
                 const context: FabricContext = {
-                    workspaceId: '', // Will be populated in Phase 2
+                    workspaceId: '',
                     itemId: itemObjectId || '',
                 };
+
+                // Note: Not extracting user email from Fabric token
+                // IntuigenceAI will handle its own authentication via Keycloak
+                console.log("Skipping token acquisition - app will handle its own auth");
 
                 // Try to get item info if we have an itemObjectId
                 if (itemObjectId) {
@@ -130,10 +133,17 @@ export function IntuigenceAppEditor({ workloadClient }: PageProps) {
     const buildIframeUrl = (): string => {
         const url = new URL(IntuigenceAppConfig.baseUrl);
 
-        // Add Fabric context as URL parameters
-        url.searchParams.set('fabric', 'true');
-        url.searchParams.set('embed', 'true');
+        // Add Fabric embed mode indicator
+        // This tells IntuigenceAI to use Azure AD authentication via Keycloak
+        url.searchParams.set('embed', IntuigenceAppConfig.embedMode);
 
+        // Add loginHint for SSO - IntuigenceAI will pass this to Keycloak
+        // which will then pass it to Azure AD for seamless sign-in
+        if (fabricContext?.userEmail) {
+            url.searchParams.set('loginHint', fabricContext.userEmail);
+        }
+
+        // Add Fabric context
         if (fabricContext?.workspaceId) {
             url.searchParams.set('workspaceId', fabricContext.workspaceId);
         }
@@ -202,6 +212,7 @@ export function IntuigenceAppEditor({ workloadClient }: PageProps) {
                 onLoad={handleIframeLoad}
                 onError={handleIframeError}
                 allow="clipboard-write"
+                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation"
             />
         </div>
     );
