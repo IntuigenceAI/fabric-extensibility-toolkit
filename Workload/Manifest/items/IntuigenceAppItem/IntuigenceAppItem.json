@@ -1,0 +1,31 @@
+{
+    "name": "IntuigenceApp",
+    "version": "1.100",
+    "displayName": "IntuigenceApp_DisplayName",
+    "displayNamePlural": "IntuigenceApp_DisplayName_Plural",
+    "editor": {
+        "path": "/IntuigenceAppItem-editor"
+    },
+    "icon": {
+        "name": "assets/images/IntuigenceAI_Icon.png"
+    },
+    "activeIcon": {
+        "name": "assets/images/IntuigenceAI_Icon.png"
+    },
+    "contextMenuItems": [],
+    "quickActionItems": [],
+    "supportedInMonitoringHub": false,
+    "supportedInDatahubL1": true,
+    "itemJobActionConfig": {},
+    "editorTab": {
+        "onDeactivate": "item.tab.onDeactivate",
+        "canDeactivate": "item.tab.canDeactivate",
+        "canDestroy": "item.tab.canDestroy",
+        "onDestroy": "item.tab.onDestroy",
+        "onDelete": "item.tab.onDelete"
+    },
+    "createItemDialogConfig": {
+        "onCreationFailure": { "action": "item.onCreationFailure" },
+        "onCreationSuccess": { "action": "item.onCreationSuccess" }
+    }
+}

@@ -66,7 +66,7 @@ router.get('/manifests_new/metadata', rateLimit, (req, res) => {
       appId: process.env.DEV_AAD_CONFIG_FE_APPID,
     },
     //If you enable Sandbox Relaxation, make sure to also enable it in the manifest package and vica versa.
-    devSandboxRelaxation: false
+    devSandboxRelaxation: true
   };
 
   res.end(JSON.stringify({ extension: devParameters }));
