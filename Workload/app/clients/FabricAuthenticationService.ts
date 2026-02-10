@@ -49,10 +49,32 @@ export class FabricAuthenticationService {
     if (!this.workloadClient) {
       throw new Error('WorkloadClientAPI is required for user token authentication');
     }
-    
-    return this.workloadClient.auth.acquireFrontendAccessToken({ 
-      scopes: scopes?.length ? scopes.split(' ') : [] 
-    });
+
+    // Try acquireFrontendAccessToken first (works when clientSideAuth=1).
+    // If it fails with UnsupportedError (0), fall back to acquireAccessToken
+    // which gets a token for the workload's own audience and works in item
+    // editor contexts where clientSideAuth=0.
+    try {
+      return await this.workloadClient.auth.acquireFrontendAccessToken({ 
+        scopes: scopes?.length ? scopes.split(' ') : [] 
+      });
+    } catch (frontendErr: unknown) {
+      const errObj = frontendErr as Record<string, unknown> | null;
+      const isUnsupported = errObj && typeof errObj.error === 'number' && errObj.error === 0;
+
+      if (!isUnsupported) {
+        throw frontendErr; // Re-throw non-UnsupportedError errors
+      }
+
+      console.log('acquireFrontendAccessToken unavailable (clientSideAuth=0), falling back to acquireAccessToken');
+      
+      // acquireAccessToken gets a token for the workload's registered audience.
+      // The token includes permissions configured on the Entra App (Fabric.Extend, etc.)
+      // and can be used to call Fabric APIs directly.
+      return await this.workloadClient.auth.acquireAccessToken({
+        additionalScopesToConsent: scopes?.length ? scopes.split(' ') : undefined
+      });
+    }
   }
 
   /**

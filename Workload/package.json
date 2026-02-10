@@ -4,7 +4,7 @@
   "description": "Microsoft Fabric - Developer Sample App",
   "scripts": {
     "start": "npm run start:devServer",
-    "start:devServer": "set NODE_OPTIONS=--max-old-space-size=8192 && env-cmd -f .env.dev webpack serve --open --config ./devServer/webpack.dev.js",
+    "start:devServer": "NODE_OPTIONS=--max-old-space-size=8192 env-cmd -f .env.dev webpack serve --open --config ./devServer/webpack.dev.js",
     "start:devGateway": "node ./devServer/start-devGateway.js",
     "start:codespace": "node --max-old-space-size=8192 ./node_modules/.bin/env-cmd -f .env.dev webpack serve --open --config ./devServer/webpack.dev.js --no-hot",
     "build:test": "env-cmd -f .env.test webpack --config ./webpack.config.js --output-path ../build/Frontend --progress",
