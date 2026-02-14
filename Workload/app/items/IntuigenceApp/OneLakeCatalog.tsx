@@ -304,6 +304,25 @@ export function OneLakeCatalog({ workloadClient }: PageProps) {
                         </div>
                     </div>
                     <div className={styles.previewHeaderActions}>
+                        {(() => {
+                            const status = catalog.getFileStatus(preview.file.fullPath);
+                            const isProcessing = status && ['submitting', 'queued', 'processing'].includes(status.status);
+
+                            return (
+                                <Button
+                                    appearance="primary"
+                                    onClick={catalog.processDocument}
+                                    disabled={!!isProcessing || !preview.file}
+                                >
+                                    {status?.status === 'submitting' && '⏳ Downloading...'}
+                                    {status?.status === 'queued' && '⏳ Queued'}
+                                    {status?.status === 'processing' && `⏳ Processing ${status.progress}%`}
+                                    {status?.status === 'completed' && '✅ Processed'}
+                                    {status?.status === 'failed' && '❌ Failed'}
+                                    {!status && 'Process Document'}
+                                </Button>
+                            );
+                        })()}
                         <Button
                             icon={<ArrowDownloadRegular />}
                             appearance="subtle"

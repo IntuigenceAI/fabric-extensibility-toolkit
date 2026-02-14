@@ -354,6 +354,129 @@ export function useOneLakeCatalog(
         setState(prev => ({ ...prev, error: null }));
     }, []);
 
+    // -----------------------------------------------------------------------
+    // Process OneLake document with real-time status tracking
+    // -----------------------------------------------------------------------
+    const [processingJobs, setProcessingJobs] = useState<Map<string, {
+        jobId: string;
+        documentId: string;
+        status: 'submitting' | 'queued' | 'processing' | 'completed' | 'failed';
+        progress: number;
+    }>>(new Map());
+
+    const processDocument = useCallback(async () => {
+        const client = clientRef.current;
+        if (!client || !state.selectedFile || !state.workspaceId) {
+            setState(prev => ({ ...prev, error: 'Please select a file first' }));
+            return;
+        }
+
+        const file = state.selectedFile.file;
+
+        // Mark as submitting
+        setProcessingJobs(prev => new Map(prev).set(file.fullPath, {
+            jobId: '',
+            documentId: '',
+            status: 'submitting',
+            progress: 0
+        }));
+
+        try {
+            // Download file from OneLake as base64
+            const base64Content = await client.oneLakeStorage.readFileAsBase64(file.fullPath);
+
+            if (!base64Content) {
+                throw new Error('Failed to download file from OneLake');
+            }
+
+            // Send to IntuigenceAI backend for processing
+            const response = await fetch('http://localhost:3001/api/v1/documents/process-onelake', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    fileName: file.name,
+                    fileContent: base64Content,
+                    oneLakePath: file.fullPath,
+                    workspaceId: state.workspaceId,
+                    lakehouseId: file.lakehouseId,
+                    mimeType: getMimeType(file.name),
+                }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Processing failed');
+            }
+
+            const result = await response.json();
+
+            // Update to queued status
+            setProcessingJobs(prev => new Map(prev).set(file.fullPath, {
+                jobId: result.workflow_id,
+                documentId: result.id,
+                status: 'queued',
+                progress: 0
+            }));
+
+            // Start polling for status updates
+            pollJobStatus(result.workflow_id, file.fullPath);
+
+        } catch (err: unknown) {
+            console.error('Failed to process document:', err);
+            // Remove from processing map on error
+            setProcessingJobs(prev => {
+                const newMap = new Map(prev);
+                newMap.delete(file.fullPath);
+                return newMap;
+            });
+            setState(prev => ({
+                ...prev,
+                error: `Failed to process document: ${getErrorMessage(err)}`
+            }));
+        }
+    }, [state.selectedFile, state.workspaceId]);
+
+    // Poll job status (simple polling for demo, SSE would be better for production)
+    const pollJobStatus = useCallback((jobId: string, filePath: string) => {
+        const interval = setInterval(async () => {
+            try {
+                const response = await fetch(`http://localhost:3001/api/v1/async-jobs/${jobId}`);
+                if (!response.ok) {
+                    clearInterval(interval);
+                    return;
+                }
+
+                const jobData = await response.json();
+                const latestRun = jobData.latestRun;
+
+                setProcessingJobs(prev => {
+                    const current = prev.get(filePath);
+                    if (!current) return prev;
+
+                    return new Map(prev).set(filePath, {
+                        ...current,
+                        status: latestRun.status as any,
+                        progress: latestRun.progress?.percentage || 0
+                    });
+                });
+
+                // Stop polling if completed or failed
+                if (latestRun.status === 'completed' || latestRun.status === 'failed') {
+                    clearInterval(interval);
+                }
+            } catch (error) {
+                console.error('Failed to poll job status:', error);
+                clearInterval(interval);
+            }
+        }, 2000); // Poll every 2 seconds
+    }, []);
+
+    const getFileStatus = useCallback((filePath: string) => {
+        return processingJobs.get(filePath);
+    }, [processingJobs]);
+
     // Cleanup blob URLs on unmount
     useEffect(() => {
         return () => {
@@ -377,6 +500,8 @@ export function useOneLakeCatalog(
         files: filteredFiles,
         allFiles: state.files,
         selectedFile: state.selectedFile,
+        processDocument,
+        getFileStatus,
         loading: state.loading,
         error: state.error,
         searchQuery: state.searchQuery,
