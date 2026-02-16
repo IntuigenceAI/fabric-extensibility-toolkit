@@ -38,7 +38,11 @@ module.exports = merge(baseConfig, {
         port: 60006,
         host: '127.0.0.1',
         open: false,
-        historyApiFallback: true,
+        historyApiFallback: {
+            rewrites: [
+                { from: /^\/close$/, to: '/close.html' },
+            ],
+        },
         headers: {
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "GET,OPTIONS",
