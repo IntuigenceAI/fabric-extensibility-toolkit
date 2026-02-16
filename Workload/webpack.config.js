@@ -48,6 +48,10 @@ module.exports = {
                     from: './app/web.config',
                     to: './web.config',
                 },
+                {
+                    from: './app/close.html',
+                    to: './close.html',
+                },
             ]
         }),
     ],
