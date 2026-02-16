@@ -70,12 +70,12 @@
         }
       ],
         "supportLink": {
-          "documentation": {"url": "https://example.com/documentation"},
-          "certification": {"url": "https://example.com/certification"},
-          "help": {"url": "https://example.com/help"},
-          "privacy": {"url": "https://example.com/privacy"},
-          "terms": {"url": "https://example.com/terms"},
-          "license": {"url": "https://azuremarketplace.microsoft.com"} 
+          "documentation": {"url": "https://docs.intuigence.ai/fabric"},
+          "certification": {"url": "https://docs.intuigence.ai/fabric/attestation"},
+          "help": {"url": "https://docs.intuigence.ai/fabric/support"},
+          "privacy": {"url": "https://docs.intuigence.ai/privacy"},
+          "terms": {"url": "https://docs.intuigence.ai/terms"},
+          "license": {"url": "https://azuremarketplace.microsoft.com/en-us/marketplace/apps/intuigenceai.industrialworkers"}
       }
     },
     "itemJobTypes" :["storeData", "others"],
