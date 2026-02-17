@@ -1,10 +1,16 @@
 # Phase 0 — Publishing Prerequisites Checklist
 
-Manual tasks that must be completed before feature development (Phases 1-4) can begin.
+Manual tasks required before publishing the workload to Fabric marketplace.
+
+> **Note:** The codebase is the same for dev and production. The difference is config
+> values only (Entra app ID, frontend URL, API URLs). For local development and testing,
+> the existing dev app registration (`bb17c7ba-...` in `.env.dev`) works fine.
+> Items 1-3 (production Entra app) can be deferred until you're ready to publish —
+> they don't block feature development.
 
 ---
 
-## 1. Register Multitenant Entra Application
+## 1. Register Production Multitenant Entra Application
 
 - [ ] Go to Azure Portal > Microsoft Entra ID > App registrations > New registration
 - [ ] Set name: `IntuigenceAI for Fabric` (must align with workload publisher name)
@@ -13,6 +19,8 @@ Manual tasks that must be completed before feature development (Phases 1-4) can 
 - [ ] Record the **Application (client) ID** — this goes into `.env.prod` as `FRONTEND_APPID`
 - [ ] Record the **Directory (tenant) ID**
 
+> Can be deferred until publishing time. Dev uses existing single-tenant app.
+
 **Owner:** [TODO]
 **Status:** Not started
 
@@ -20,10 +28,12 @@ Manual tasks that must be completed before feature development (Phases 1-4) can 
 
 ## 2. Verify Custom Domain
 
-- [ ] In the Entra App registration, go to Branding & properties
+- [ ] In the production Entra App registration, go to Branding & properties
 - [ ] Add `intuigence.ai` as a verified publisher domain
 - [ ] Add DNS TXT record to `intuigence.ai` as instructed by Entra
 - [ ] Wait for DNS propagation and verify
+
+> Depends on item 1. Can be deferred until publishing time.
 
 **Owner:** [TODO]
 **Status:** Not started
@@ -32,10 +42,12 @@ Manual tasks that must be completed before feature development (Phases 1-4) can 
 
 ## 3. Configure Fabric.Extend Scope
 
-- [ ] In the Entra App registration, go to API permissions
+- [ ] In the production Entra App registration, go to API permissions
 - [ ] Add permission: Microsoft APIs > Power BI Service (or Fabric) > `Fabric.Extend`
 - [ ] This is a static dependency required for all Fabric workloads
 - [ ] Grant admin consent for the tenant
+
+> Depends on item 1. Can be deferred until publishing time.
 
 **Owner:** [TODO]
 **Status:** Not started
@@ -109,7 +121,9 @@ Manual tasks that must be completed before feature development (Phases 1-4) can 
 
 ## Completion Criteria
 
-All items above must be completed before moving to Phase 1 (DataCatalog implementation). The following automated checks are already in place:
+All items must be completed before publishing submission. Items 1-3 can be deferred during feature development — the existing dev app registration is sufficient for Phases 1-4.
+
+The following automated checks are already in place:
 
 - [x] `/close` standalone page created and configured in build pipeline
 - [x] Environment files updated with IntuigenceAI variables
