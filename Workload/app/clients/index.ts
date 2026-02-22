@@ -17,5 +17,9 @@ export { ExternalDataSharesProviderClient } from './ExternalDataSharesProviderCl
 export { ExternalDataSharesRecipientClient } from './ExternalDataSharesRecipientClient';
 export { GatewayClient } from './GatewayClient';
 
+// IntuigenceAI Integration
+export { IntuigenceAuthBridge } from './IntuigenceAuthBridge';
+export { IntuigenceAPIClient } from './IntuigenceAPIClient';
+
 // Re-export WorkloadClientAPI for convenience
 export { WorkloadClientAPI } from '@ms-fabric/workload-client';

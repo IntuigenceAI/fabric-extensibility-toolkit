@@ -3,6 +3,8 @@ import { Route, Router, Switch } from "react-router-dom";
 import { History } from "history";
 import { WorkloadClientAPI } from "@ms-fabric/workload-client";
 import { OneLakeCatalog } from "./items/IntuigenceApp/OneLakeCatalog";
+import { DataCatalogEditor } from "./items/DataCatalog";
+import { IntelligentBoardEditor } from "./items/IntelligentBoard";
 import { ConditionalPlaygroundRoutes } from "./playground/ConditionalPlaygroundRoutes";
 
 /*
@@ -49,6 +51,16 @@ export function App({ history, workloadClient }: AppProps) {
                     workloadClient={workloadClient}
                     data-testid="IntuigenceAppItem-editor"
                 />
+            </Route>
+
+            {/* Routings for the DataCatalog Editor */}
+            <Route path="/DataCatalogItem-editor/:itemObjectId?">
+                <DataCatalogEditor workloadClient={workloadClient} />
+            </Route>
+
+            {/* Routings for the IntelligentBoard Editor */}
+            <Route path="/IntelligentBoardItem-editor/:itemObjectId?">
+                <IntelligentBoardEditor workloadClient={workloadClient} />
             </Route>
 
             {/* Conditionally loaded playground routes (only in development) */}
