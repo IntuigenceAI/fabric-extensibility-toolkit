@@ -1,0 +1,1 @@
+export { IntelligentBoardEditor } from "./IntelligentBoardEditor";

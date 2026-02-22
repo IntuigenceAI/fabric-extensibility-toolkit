@@ -9,5 +9,11 @@
     "Workload_Hub_GetStarted_1_Description": "Start chatting with PAM to explore your plant data",
     "IntuigenceApp_DisplayName": "IntuigenceAI",
     "IntuigenceApp_DisplayName_Plural": "IntuigenceAI",
-    "IntuigenceApp_Description": "AI-powered plant intelligence with PAM, ACE, MAX, and ELLA agents"
+    "IntuigenceApp_Description": "AI-powered plant intelligence with PAM, ACE, MAX, and ELLA agents",
+    "DataCatalog_DisplayName": "Data Catalog",
+    "DataCatalog_DisplayName_Plural": "Data Catalogs",
+    "DataCatalog_Description": "Intelligent document processing and knowledge management for industrial assets",
+    "IntelligentBoard_DisplayName": "Intelligent Board",
+    "IntelligentBoard_DisplayName_Plural": "Intelligent Boards",
+    "IntelligentBoard_Description": "Interactive dashboards with AI-powered insights for plant operations"
 }

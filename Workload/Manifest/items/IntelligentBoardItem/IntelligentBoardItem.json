@@ -1,0 +1,31 @@
+{
+    "name": "IntelligentBoard",
+    "version": "1.100",
+    "displayName": "IntelligentBoard_DisplayName",
+    "displayNamePlural": "IntelligentBoard_DisplayName_Plural",
+    "editor": {
+        "path": "/IntelligentBoardItem-editor"
+    },
+    "icon": {
+        "name": "assets/images/IntelligentBoard_Icon.png"
+    },
+    "activeIcon": {
+        "name": "assets/images/IntelligentBoard_Icon.png"
+    },
+    "contextMenuItems": [],
+    "quickActionItems": [],
+    "supportedInMonitoringHub": false,
+    "supportedInDatahubL1": true,
+    "itemJobActionConfig": {},
+    "editorTab": {
+        "onDeactivate": "item.tab.onDeactivate",
+        "canDeactivate": "item.tab.canDeactivate",
+        "canDestroy": "item.tab.canDestroy",
+        "onDestroy": "item.tab.onDestroy",
+        "onDelete": "item.tab.onDelete"
+    },
+    "createItemDialogConfig": {
+        "onCreationFailure": { "action": "item.onCreationFailure" },
+        "onCreationSuccess": { "action": "item.onCreationSuccess" }
+    }
+}
