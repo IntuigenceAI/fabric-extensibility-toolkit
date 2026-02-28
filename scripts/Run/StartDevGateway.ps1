@@ -63,20 +63,14 @@ if($IsWindows) {
         Write-Host "Starting DevGateway with token-based authentication..." -ForegroundColor Green
         & $fileExe -LogLevel $logLevel -DevMode:UserAuthorizationToken $token -DevMode:ManifestPackageFilePath $manifestPackageFilePath -DevMode:WorkspaceGuid $devWorkspaceId
     }
-} else {   
-    # Check if we're on ARM64 Mac and need x64 runtime
-    $arch = uname -m
-    if ($arch -eq "arm64") {
-        $x64DotnetPath = "/usr/local/share/dotnet/x64/dotnet"
-        if (Test-Path $x64DotnetPath) {
-            Write-Host "Using x64 .NET runtime for ARM64 Mac compatibility..." -ForegroundColor Yellow
-            & $x64DotnetPath $fileExe -LogLevel $logLevel -DevMode:UserAuthorizationToken $token -DevMode:ManifestPackageFilePath $manifestPackageFilePath -DevMode:WorkspaceGuid $devWorkspaceId
-        } else {
-            Write-Host "ERROR: This application requires x64 .NET runtime, but you're on ARM64 Mac." -ForegroundColor Red
-            Write-Host "Please install x64 .NET 8 Runtime from: https://dotnet.microsoft.com/download/dotnet/8.0" -ForegroundColor Red
-            Write-Host "Make sure to download the x64 version (not ARM64)." -ForegroundColor Red
-            exit 1
-        }
+} else {
+    # The DevGateway DLL is x64. On macOS, prefer the x64 .NET runtime if available.
+    # Note: pwsh may run under Rosetta (reporting x86_64) even on ARM64 Macs,
+    # so we check for x64 runtime regardless of reported architecture.
+    $x64DotnetPath = "/usr/local/share/dotnet/x64/dotnet"
+    if (Test-Path $x64DotnetPath) {
+        Write-Host "Using x64 .NET runtime ($x64DotnetPath)..." -ForegroundColor Yellow
+        & $x64DotnetPath $fileExe -LogLevel $logLevel -DevMode:UserAuthorizationToken $token -DevMode:ManifestPackageFilePath $manifestPackageFilePath -DevMode:WorkspaceGuid $devWorkspaceId
     } else {
         & dotnet $fileExe -LogLevel $logLevel -DevMode:UserAuthorizationToken $token -DevMode:ManifestPackageFilePath $manifestPackageFilePath -DevMode:WorkspaceGuid $devWorkspaceId
     }

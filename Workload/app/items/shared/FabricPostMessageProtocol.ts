@@ -39,6 +39,7 @@ export interface FabricMessage<T = unknown> {
 
 export interface AuthTokenPayload {
   token: string;
+  workspaceId?: string;
 }
 
 export interface BoardContextPayload {

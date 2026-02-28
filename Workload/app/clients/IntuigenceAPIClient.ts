@@ -20,6 +20,7 @@ export interface DocumentDetails {
   fileName: string;
   status: string;
   mimeType?: string;
+  is_indexed?: boolean;
   createdAt: string;
   [key: string]: unknown;
 }
@@ -27,6 +28,51 @@ export interface DocumentDetails {
 export interface DocumentList {
   items: DocumentDetails[];
   total: number;
+}
+
+export interface FileUploadResult {
+  id: string;
+  file: FileStatusResponse;
+}
+
+export interface FileStatusResponse {
+  id: string;
+  originalFilename: string;
+  fileSize: number | null;
+  mimeType: string | null;
+  fileType: string;
+  uploadStatus: 'pending' | 'uploading' | 'uploaded' | 'failed' | 'cancelled';
+  processingStatus: 'pending' | 'queued' | 'processing' | 'completed' | 'failed' | 'skipped';
+  processingErrorMessage: string | null;
+  properties: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// OneLake server-side ingestion types
+// ---------------------------------------------------------------------------
+
+export interface OneLakeIngestRequest {
+  files: Array<{
+    workspaceId: string;
+    itemId: string;
+    selectedPath: string;
+    fileName: string;
+    mimeType?: string;
+    fileType?: string;
+  }>;
+}
+
+export interface OneLakeIngestResultItem {
+  fileName: string;
+  fileId: string | null;
+  status: 'accepted' | 'failed';
+  error?: string;
+}
+
+export interface OneLakeIngestResponse {
+  results: OneLakeIngestResultItem[];
 }
 
 // ---------------------------------------------------------------------------
@@ -99,8 +145,9 @@ export class IntuigenceAPIClient {
   }
 
   /** Get document details. */
-  getDocument(documentId: string): Promise<DocumentDetails> {
-    return this.request("GET", `/api/v1/documents/${documentId}`);
+  async getDocument(documentId: string): Promise<DocumentDetails> {
+    const res = await this.request<{ document: DocumentDetails }>("GET", `/api/v1/documents/${documentId}`);
+    return res.document;
   }
 
   /** List documents for the current tenant. */
@@ -114,5 +161,105 @@ export class IntuigenceAPIClient {
       qs.set("pageSize", String(params.pageSize));
     const query = qs.toString() ? `?${qs}` : "";
     return this.request("GET", `/api/v1/documents${query}`);
+  }
+
+  // -------------------------------------------------------------------------
+  // File upload + processing methods (Phase 2)
+  // -------------------------------------------------------------------------
+
+  /** Provision the user/tenant (delegates to auth bridge). */
+  async initialize(workspaceId: string): Promise<void> {
+    await this.authBridge.initialize(workspaceId);
+  }
+
+  /** Get a fresh auth token (for iframe PostMessage). */
+  async getToken(): Promise<string> {
+    return this.authBridge.getToken();
+  }
+
+  /** Upload a file via multipart form data. */
+  async uploadFile(file: File, fileType: string): Promise<FileUploadResult> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('fileType', fileType);
+
+    const doFetch = async (): Promise<Response> => {
+      const token = await this.authBridge.getToken();
+      return fetch(`${this.baseUrl}/api/v2/files/upload`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'X-Fabric-Workspace-Id': this.workspaceId,
+          // Do NOT set Content-Type — browser sets multipart boundary
+        },
+        body: formData,
+      });
+    };
+
+    let res = await doFetch();
+    if (res.status === 401) {
+      this.authBridge.clearCache();
+      res = await doFetch();
+    }
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Upload failed (${res.status}): ${text}`);
+    }
+
+    return res.json();
+  }
+
+  /** Upload a file from base64 content (for OneLake-sourced files). */
+  async uploadFileFromBase64(
+    base64: string,
+    fileName: string,
+    mimeType: string,
+    fileType: string
+  ): Promise<FileUploadResult> {
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    const blob = new Blob([bytes], { type: mimeType });
+    const file = new File([blob], fileName, { type: mimeType });
+    return this.uploadFile(file, fileType);
+  }
+
+  /**
+   * Ingest files from OneLake server-side.
+   * Uses a workload-audience token (from acquireAccessToken) so the backend
+   * can exchange it via OBO for a OneLake-scoped storage token.
+   */
+  async ingestFromOneLake(request: OneLakeIngestRequest): Promise<OneLakeIngestResponse> {
+    const token = await this.authBridge.getWorkloadToken();
+
+    const res = await fetch(`${this.baseUrl}/api/v2/files/ingest-onelake`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'X-Fabric-Workspace-Id': this.workspaceId,
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`IntuigenceAI API error ${res.status}: ${text}`);
+    }
+
+    return res.json();
+  }
+
+  /** Get file processing status. */
+  getFileStatus(fileId: string): Promise<FileStatusResponse> {
+    return this.request("GET", `/api/v2/files/${fileId}`);
+  }
+
+  /** Delete a document. */
+  deleteDocument(docId: string): Promise<{ success: boolean }> {
+    return this.request("DELETE", `/api/v1/documents/${docId}`);
   }
 }
