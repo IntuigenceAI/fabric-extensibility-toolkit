@@ -1,11 +1,11 @@
-import { DatahubCompactViewConfig, DatahubCompactViewPageConfig, DatahubHeaderDialogConfig, DatahubSelectorDialogConfig, 
-    DatahubSelectorDialogResult, 
-    DatahubWizardDialogConfig, 
-    DatahubWizardDialogResult, 
-    ExtendedItemTypeV2, 
-    OnelakeExplorerConfig, 
-    OneLakeExplorerPageConfig, 
-    OnelakeExplorerType, 
+import { DatahubCompactViewConfig, DatahubCompactViewPageConfig, DatahubHeaderDialogConfig, DatahubSelectorDialogConfig,
+    DatahubSelectorDialogResult,
+    DatahubWizardDialogConfig,
+    DatahubWizardDialogResult,
+    ExtendedItemTypeV2,
+    OnelakeExplorerConfig,
+    OneLakeExplorerPageConfig,
+    OnelakeExplorerType,
     WorkloadClientAPI } from "@ms-fabric/workload-client";
 import { Item } from "../clients/FabricPlatformTypes";
 
