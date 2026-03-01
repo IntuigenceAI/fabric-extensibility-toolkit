@@ -30,6 +30,7 @@ export enum FabricMessageType {
 
   // Navigation
   OPEN_DOCUMENT = "OPEN_DOCUMENT",
+  OPEN_DOCUMENTS_MODAL = "OPEN_DOCUMENTS_MODAL",
 }
 
 export interface FabricMessage<T = unknown> {
@@ -49,6 +50,7 @@ export interface BoardContextPayload {
     catalogWorkspaceId: string;
     catalogDisplayName: string;
   }>;
+  allowedDocumentIds?: string[];
 }
 
 export interface FabricThemePayload {

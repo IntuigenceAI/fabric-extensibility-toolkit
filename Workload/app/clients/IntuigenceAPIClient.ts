@@ -262,4 +262,13 @@ export class IntuigenceAPIClient {
   deleteDocument(docId: string): Promise<{ success: boolean }> {
     return this.request("DELETE", `/api/v1/documents/${docId}`);
   }
+
+  // -------------------------------------------------------------------------
+  // Workspace (board) methods (Phase 3)
+  // -------------------------------------------------------------------------
+
+  /** Create a new workspace (board) in IntuigenceAI. */
+  createWorkspace(name: string): Promise<{ id: string; name: string }> {
+    return this.request("POST", "/api/v1/workspaces", { name, documents: [] });
+  }
 }
