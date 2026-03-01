@@ -292,7 +292,8 @@ export class OneLakeStorageClient extends FabricPlatformClient {
 
       const flushResponse = await fetch(flushUrl, {
         method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        body: "",  // Empty body forces browser to send Content-Length: 0
       });
       if (!flushResponse.ok) throw new Error(`HTTP ${flushResponse.status}`);
 
@@ -332,7 +333,8 @@ export class OneLakeStorageClient extends FabricPlatformClient {
 
       const flushResponse = await fetch(flushUrl, {
         method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        body: "",  // Empty body forces browser to send Content-Length: 0
       });
       if (!flushResponse.ok) throw new Error(`HTTP ${flushResponse.status}`);
 
