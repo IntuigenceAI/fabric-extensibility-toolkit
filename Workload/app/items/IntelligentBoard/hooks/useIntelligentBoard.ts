@@ -38,25 +38,20 @@ export function useIntelligentBoard(
 
   // Create API client once workspace is resolved
   const apiClient = useMemo(() => {
-    if (!syncWorkspaceId) {
-      console.log('[useIntelligentBoard] Waiting for workspaceId...');
-      return null;
-    }
-    console.log(`[useIntelligentBoard] Creating API client for workspace: ${syncWorkspaceId}`);
-    const client = new IntuigenceAPIClient(workloadClient, syncWorkspaceId);
-    apiClientRef.current = client;
-    return client;
+    if (!syncWorkspaceId) return null;
+    return new IntuigenceAPIClient(workloadClient, syncWorkspaceId);
   }, [workloadClient, syncWorkspaceId]);
+
+  // Keep ref in sync (outside useMemo to avoid side effects in memoization)
+  apiClientRef.current = apiClient;
 
   // Initialize auth when API client is ready
   useEffect(() => {
     if (!apiClient || !syncWorkspaceId) return undefined;
     let cancelled = false;
 
-    console.log('[useIntelligentBoard] Initializing auth...');
     apiClient.initialize(syncWorkspaceId)
       .then(() => {
-        console.log('[useIntelligentBoard] Auth initialized successfully');
         if (!cancelled) setAuthReady(true);
       })
       .catch((err) => {
@@ -72,14 +67,6 @@ export function useIntelligentBoard(
   useEffect(() => {
     const def = definition;
     const alreadyCreating = creatingForItemRef.current === resolvedItemId;
-    console.log('[useIntelligentBoard] Workspace creation check:', {
-      hasDef: !!def,
-      hasApiClient: !!apiClient,
-      authReady,
-      existingWsId: def?.intuigenceMapping?.workspaceId,
-      alreadyCreating,
-      itemId: resolvedItemId,
-    });
 
     if (
       !def ||
@@ -93,12 +80,10 @@ export function useIntelligentBoard(
     }
 
     creatingForItemRef.current = resolvedItemId;
-    console.log('[useIntelligentBoard] Creating IntuigenceAI workspace...');
 
     (async () => {
       try {
         const ws = await apiClient.createWorkspace(def.name || 'Intelligent Board');
-        console.log(`[useIntelligentBoard] Workspace created: ${ws.id}`);
         // Use the ref to get the latest definition (may have been updated by addCatalogRef)
         const latestDef = definitionRef.current;
         if (!latestDef) return;
@@ -110,7 +95,6 @@ export function useIntelligentBoard(
           },
         };
         await saveDefinition(updatedDef);
-        console.log(`[useIntelligentBoard] Definition saved with workspace ID: ${ws.id}`);
       } catch (err) {
         console.error('[useIntelligentBoard] Workspace creation failed:', err);
         creatingForItemRef.current = null; // Allow retry
@@ -154,6 +138,11 @@ export function useIntelligentBoard(
           for (const doc of catalogDef.documents) {
             if (doc.processingStatus === 'success' && doc.intuigenceDocumentId) {
               allDocIds.push(doc.intuigenceDocumentId);
+              // Also include graph document ID for P&ID entries so graph docs
+              // pass the allowedDocumentIds filter on the board
+              if (doc.intuigenceGraphId) {
+                allDocIds.push(doc.intuigenceGraphId);
+              }
             }
           }
         } catch (err) {
@@ -163,7 +152,6 @@ export function useIntelligentBoard(
 
       if (!cancelled) {
         setCatalogDocumentIds(allDocIds);
-        console.log(`[useIntelligentBoard] Loaded ${allDocIds.length} document IDs from ${catalogRefs.length} catalog(s)`);
       }
     })();
 
@@ -216,7 +204,6 @@ export function useIntelligentBoard(
   const resetBoardId = useCallback(async () => {
     const def = definitionRef.current;
     if (!def) return;
-    console.log('[useIntelligentBoard] Resetting stale boardId, will re-create workspace...');
     creatingForItemRef.current = null;
     const updatedDef: IntelligentBoardDefinition = {
       ...def,

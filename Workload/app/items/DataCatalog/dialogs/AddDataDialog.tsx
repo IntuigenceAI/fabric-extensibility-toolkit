@@ -83,7 +83,7 @@ const useStyles = makeStyles({
 
 const DOC_TYPE_OPTIONS = [
   { key: 'document', label: 'Document (pdf, docx, txt)', disabled: false },
-  { key: 'pid', label: 'P&ID (pdf, png, jpg)', disabled: true },
+  { key: 'pid', label: 'P&ID (pdf, png, jpg)', disabled: false },
   { key: 'table', label: 'Table (xlsx, csv)', disabled: true },
   { key: 'timeseries', label: 'Timeseries (csv, xlsx)', disabled: true },
 ];
@@ -130,10 +130,10 @@ export function AddDataDialog({ onClose, onFilesSubmitted }: AddDataDialogProps)
 
   const handleFilePickerSelect = useCallback((files: OneLakeFileSelection[]) => {
     setShowFilePicker(false);
-    catalog.ingestFromOneLake(files);
+    catalog.ingestFromOneLake(files, selectedDocType);
     onFilesSubmitted(files.length);
     onClose();
-  }, [catalog, onFilesSubmitted, onClose]);
+  }, [catalog, selectedDocType, onFilesSubmitted, onClose]);
 
   const handleFilePickerCancel = useCallback(() => {
     setShowFilePicker(false);

@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { IntuigenceAPIClient, FileStatusResponse, DocumentDetails } from '../../../clients/IntuigenceAPIClient';
 import type { OneLakeIngestRequest } from '../../../clients/IntuigenceAPIClient';
 import { WorkloadClientAPI } from '@ms-fabric/workload-client';
-import { DataSourceType, CatalogDocumentEntry } from '../DataCatalogDefinition';
+import { DataSourceType, CatalogDocumentEntry, CatalogDocumentType } from '../DataCatalogDefinition';
 import { OneLakeFileSelection } from '../DataCatalogContext';
 
 export interface ProcessingFile {
@@ -19,7 +19,7 @@ export interface ProcessingFile {
 }
 
 export interface UseDocumentProcessingResult {
-  ingestFromOneLake: (files: OneLakeFileSelection[]) => void;
+  ingestFromOneLake: (files: OneLakeFileSelection[], docType?: string) => void;
   activeFiles: ProcessingFile[];
   removeFile: (localId: string) => void;
   clearCompleted: () => void;
@@ -74,33 +74,35 @@ export function useDocumentProcessing(
   const verifyDocumentIndexed = useCallback(async (
     fileStatus: FileStatusResponse,
     fileId: string,
-  ): Promise<{ ready: boolean; failed: boolean; documentId: string | null; error?: string }> => {
-    if (!apiClient) return { ready: false, failed: false, documentId: null };
+  ): Promise<{ ready: boolean; failed: boolean; documentId: string | null; graphId: string | null; error?: string }> => {
+    if (!apiClient) return { ready: false, failed: false, documentId: null, graphId: null };
 
     const documentId = fileStatus.properties?.documentId as string | undefined;
     if (!documentId) {
       // No linked document yet — keep polling
-      return { ready: false, failed: false, documentId: null };
+      return { ready: false, failed: false, documentId: null, graphId: null };
     }
 
     try {
       const doc: DocumentDetails = await apiClient.getDocument(documentId);
 
       if (doc.is_indexed === true || doc.status === 'success') {
-        return { ready: true, failed: false, documentId };
+        const props = doc.properties as Record<string, unknown> | undefined;
+        const graphId = (props?.graph_id as string) || null;
+        return { ready: true, failed: false, documentId, graphId };
       }
       if (doc.status === 'failed') {
-        return { ready: false, failed: true, documentId, error: (doc.error_message as string) || 'Document processing failed' };
+        return { ready: false, failed: true, documentId, graphId: null, error: (doc.error_message as string) || 'Document processing failed' };
       }
       // Still waiting for processing to complete
-      return { ready: false, failed: false, documentId };
+      return { ready: false, failed: false, documentId, graphId: null };
     } catch (err) {
       console.warn('[useDocumentProcessing] Document check failed, continuing poll:', err);
-      return { ready: false, failed: false, documentId };
+      return { ready: false, failed: false, documentId, graphId: null };
     }
   }, [apiClient]);
 
-  const startPolling = useCallback((localId: string, fileId: string) => {
+  const startPolling = useCallback((localId: string, fileId: string, documentType: CatalogDocumentType = 'document') => {
     if (!apiClient) return;
     // Don't start duplicate pollers
     if (pollTimers.current.has(localId)) return;
@@ -123,9 +125,11 @@ export function useDocumentProcessing(
             mimeType: status.mimeType || 'application/octet-stream',
             sizeBytes: status.fileSize || 0,
             sourceType: 'onelake',
+            documentType,
             processingStatus: 'failed',
             intuigenceDocumentId: null,
             intuigenceFileId: fileId,
+            intuigenceGraphId: null,
             errorMessage: status.processingErrorMessage || 'Processing failed',
             lastUpdated: new Date().toISOString(),
             createdAt: status.createdAt,
@@ -152,9 +156,11 @@ export function useDocumentProcessing(
               mimeType: status.mimeType || 'application/octet-stream',
               sizeBytes: status.fileSize || 0,
               sourceType: 'onelake',
+              documentType,
               processingStatus: 'failed',
               intuigenceDocumentId: docCheck.documentId,
               intuigenceFileId: fileId,
+              intuigenceGraphId: null,
               errorMessage: docCheck.error || 'Document processing failed',
               lastUpdated: new Date().toISOString(),
               createdAt: status.createdAt,
@@ -180,9 +186,11 @@ export function useDocumentProcessing(
             mimeType: status.mimeType || 'application/octet-stream',
             sizeBytes: status.fileSize || 0,
             sourceType: 'onelake',
+            documentType,
             processingStatus: 'success',
             intuigenceDocumentId: docCheck.documentId,
             intuigenceFileId: fileId,
+            intuigenceGraphId: docCheck.graphId,
             errorMessage: null,
             lastUpdated: new Date().toISOString(),
             createdAt: status.createdAt,
@@ -233,8 +241,12 @@ export function useDocumentProcessing(
     startPolling(localId, fileId);
   }, [startPolling]);
 
-  const ingestFromOneLake = useCallback((files: OneLakeFileSelection[]) => {
+  const ingestFromOneLake = useCallback((files: OneLakeFileSelection[], docType?: string) => {
     if (!apiClient) return;
+
+    // Map UI doc type key to backend fileType enum and storage documentType
+    const backendFileType = docType === 'pid' ? 'pnid' : undefined;
+    const documentType: CatalogDocumentType = docType === 'pid' ? 'pnid' : 'document';
 
     // Build local tracking entries for UI
     const localEntries = files.map(file => {
@@ -249,7 +261,7 @@ export function useDocumentProcessing(
       ...localEntries.map(({ localId, fileName, file }) => ({
         localId,
         fileName,
-        fileType: 'document',
+        fileType: documentType,
         sourceType: 'onelake' as DataSourceType,
         onelakePath: file.selectedPath,
         status: 'uploading' as const,
@@ -265,6 +277,7 @@ export function useDocumentProcessing(
         selectedPath: file.selectedPath,
         fileName,
         mimeType: guessMimeType(fileName),
+        fileType: backendFileType,
       })),
     };
 
@@ -291,16 +304,18 @@ export function useDocumentProcessing(
               mimeType: guessMimeType(fileName),
               sizeBytes: 0,
               sourceType: 'onelake',
+              documentType,
               processingStatus: 'processing',
               intuigenceDocumentId: null,
               intuigenceFileId: result.fileId,
+              intuigenceGraphId: null,
               errorMessage: null,
               lastUpdated: new Date().toISOString(),
               createdAt: new Date().toISOString(),
               addedBy: 'Fabric User',
             });
 
-            startPolling(localId, result.fileId);
+            startPolling(localId, result.fileId, documentType);
           } else {
             updateFile(localId, {
               status: 'failed',
