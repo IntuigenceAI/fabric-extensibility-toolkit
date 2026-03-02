@@ -32,6 +32,7 @@ module.exports = {
             "process.env.ENABLE_PLAYGROUND": JSON.stringify(process.env.ENABLE_PLAYGROUND || 'false'),
             "process.env.INTUIGENCE_APP_URL": JSON.stringify(process.env.INTUIGENCE_APP_URL),
             "process.env.INTUIGENCE_API_URL": JSON.stringify(process.env.INTUIGENCE_API_URL),
+            "process.env.DEV_AAD_CONFIG_FE_APPID": JSON.stringify(process.env.FRONTEND_APPID),
         }),
         new Webpack.ProvidePlugin({
             process: 'process/browser.js',
