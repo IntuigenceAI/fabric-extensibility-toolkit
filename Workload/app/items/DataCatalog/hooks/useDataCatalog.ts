@@ -5,6 +5,24 @@ import { CatalogDocumentEntry, recomputeStats } from '../DataCatalogDefinition';
 import { useOneLakeSync } from './useOneLakeSync';
 import { useDocumentProcessing } from './useDocumentProcessing';
 import { DataCatalogContextValue, OneLakeFileSelection } from '../DataCatalogContext';
+import type { OneLakeFile } from '../../shared/OneLakeTypes';
+
+/** Alias for OneLakeFile used in the Add Data dialog */
+export type LakehouseFile = OneLakeFile;
+
+/** Lakehouse selection returned by the DataHub picker */
+export interface LakehouseSelection {
+  displayName: string;
+  folderPath: string;
+  lakehouseId: string;
+  workspaceId: string;
+}
+
+/** Tracks the processing status of an individual file */
+export interface ProcessingJob {
+  status: 'submitting' | 'processing' | 'success' | 'failed';
+  error?: string;
+}
 
 export function useDataCatalog(
   workloadClient: WorkloadClientAPI,
