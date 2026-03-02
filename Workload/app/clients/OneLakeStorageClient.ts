@@ -40,7 +40,8 @@ export class OneLakeStorageClient extends FabricPlatformClient {
       const accessToken = await this.getAccessToken();
       const response = await fetch(url, {
         method: "HEAD",
-        headers: { Authorization: `Bearer ${accessToken.token}` }
+        headers: { Authorization: `Bearer ${accessToken.token}` },
+        cache: 'no-store',
       });
       if (response.status === 200) {
         return true;
@@ -94,7 +95,8 @@ export class OneLakeStorageClient extends FabricPlatformClient {
     try {
       const accessToken = await this.getAccessToken();
       const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${accessToken.token}` }
+        headers: { Authorization: `Bearer ${accessToken.token}` },
+        cache: 'no-store',
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const arrayBuffer = await response.arrayBuffer();
@@ -151,7 +153,8 @@ export class OneLakeStorageClient extends FabricPlatformClient {
     try {
       const accessToken = await this.getAccessToken();
       const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${accessToken.token}` }
+        headers: { Authorization: `Bearer ${accessToken.token}` },
+        cache: 'no-store',
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const content = await response.text();

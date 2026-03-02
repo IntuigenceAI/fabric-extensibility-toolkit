@@ -1,5 +1,6 @@
 export type DataSourceType = 'onelake' | 'upload' | 'sample';
 export type DocumentProcessingStatus = 'processing' | 'success' | 'failed';
+export type CatalogDocumentType = 'document' | 'pnid';
 
 export interface CatalogDocumentEntry {
   id: string;
@@ -10,8 +11,10 @@ export interface CatalogDocumentEntry {
   onelakeSourcePath?: string;
   sourceLakehouseId?: string;
   processingStatus: DocumentProcessingStatus;
+  documentType?: CatalogDocumentType;
   intuigenceDocumentId: string | null;
   intuigenceFileId: string | null;
+  intuigenceGraphId?: string | null;
   errorMessage: string | null;
   lastUpdated: string;
   createdAt: string;

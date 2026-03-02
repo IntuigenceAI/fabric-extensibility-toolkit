@@ -19,7 +19,7 @@ export interface DataCatalogContextValue {
   authReady: boolean;
 
   // Document management
-  ingestFromOneLake: (files: OneLakeFileSelection[]) => void;
+  ingestFromOneLake: (files: OneLakeFileSelection[], docType?: string) => void;
   removeDocument: (id: string) => void;
   activeFiles: ProcessingFile[];
   removeActiveFile: (localId: string) => void;

@@ -51,6 +51,9 @@ export function DocumentDetailView() {
 
   const documentId = selectedDoc?.intuigenceDocumentId || selectedDoc?.intuigenceFileId;
 
+  // For P&ID with a processed graph, embed the graph editor; otherwise embed the document viewer
+  const isPnidWithGraph = selectedDoc?.documentType === 'pnid' && selectedDoc?.intuigenceGraphId;
+
   // Send auth token to iframe
   const sendAuthToken = useCallback(async () => {
     if (!iframeRef.current?.contentWindow || !catalog.apiClient) return;
@@ -124,7 +127,10 @@ export function DocumentDetailView() {
     );
   }
 
-  const iframeSrc = `${INTUIGENCE_APP_URL}/embed/document/${documentId}?embed=fabric`;
+  const embedPath = isPnidWithGraph
+    ? `/embed/graph/${selectedDoc.intuigenceGraphId}`
+    : `/embed/document/${documentId}`;
+  const iframeSrc = `${INTUIGENCE_APP_URL}${embedPath}?embed=fabric`;
 
   return (
     <ItemEditorDetailView

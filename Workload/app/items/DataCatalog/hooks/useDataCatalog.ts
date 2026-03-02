@@ -124,10 +124,13 @@ export function useDataCatalog(
                 if (docDetails.is_indexed === true || docDetails.status === 'success') {
                   const idx = updatedDocuments.findIndex(d => d.id === doc.id);
                   if (idx >= 0) {
+                    const props = docDetails.properties as Record<string, unknown> | undefined;
+                    const graphId = (props?.graph_id as string) || null;
                     updatedDocuments[idx] = {
                       ...updatedDocuments[idx],
                       processingStatus: 'success',
                       intuigenceDocumentId: documentId,
+                      ...(graphId && { intuigenceGraphId: graphId }),
                     };
                     anyUpdated = true;
                   }
@@ -182,8 +185,8 @@ export function useDataCatalog(
     })();
   }, [sync.definition, apiClient, authReady, sync, processing]);
 
-  const ingestFromOneLake = useCallback((files: OneLakeFileSelection[]) => {
-    processing.ingestFromOneLake(files);
+  const ingestFromOneLake = useCallback((files: OneLakeFileSelection[], docType?: string) => {
+    processing.ingestFromOneLake(files, docType);
   }, [processing]);
 
   const removeDocument = useCallback(async (id: string) => {
