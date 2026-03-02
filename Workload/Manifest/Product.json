@@ -22,7 +22,6 @@
         "customActions": [
         ]},
         "recommendedItemTypes": [
-          "IntuigenceApp",
           "DataCatalog",
           "IntelligentBoard"
         ]
@@ -30,27 +29,6 @@
     "createExperience": {
       "description": "Workload_Description",
       "cards": [
-        {
-          "title": "IntuigenceApp_DisplayName",
-          "description": "IntuigenceApp_Description",
-          "icon": {
-            "name": "assets/images/IntuigenceAI_Icon.png"
-          },
-          "icon_small": {
-            "name": "assets/images/IntuigenceAI_Icon.png"
-          },
-          "availableIn": [
-            "home",
-            "create-hub",
-            "workspace-plus-new",
-            "workspace-plus-new-teams"
-          ],
-          "itemType": "IntuigenceApp",
-          "createItemDialogConfig": {
-            "onCreationFailure": { "action": "item.onCreationFailure" },
-            "onCreationSuccess": { "action": "item.onCreationSuccess" }
-          }
-        },
         {
           "title": "DataCatalog_DisplayName",
           "description": "DataCatalog_Description",

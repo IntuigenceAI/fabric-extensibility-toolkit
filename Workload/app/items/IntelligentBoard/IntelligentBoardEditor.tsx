@@ -46,6 +46,10 @@ export function IntelligentBoardEditor({
 
   const getInitialView = useCallback(() => {
     if (!board.definition) return null;
+    // If a workspace was already created, the board is configured — skip onboarding
+    if (board.definition.intuigenceMapping?.workspaceId) {
+      return "board";
+    }
     const hideWelcome =
       localStorage.getItem("board-hide-welcome") === "true";
     if (board.definition.dataCatalogRefs.length === 0) {
