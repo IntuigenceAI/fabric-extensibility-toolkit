@@ -245,8 +245,8 @@ export function useDocumentProcessing(
     if (!apiClient) return;
 
     // Map UI doc type key to backend fileType enum and storage documentType
-    const backendFileType = docType === 'pid' ? 'pnid' : undefined;
-    const documentType: CatalogDocumentType = docType === 'pid' ? 'pnid' : 'document';
+    const backendFileType = docType === 'pid' ? 'pnid' : docType === 'timeseries' ? 'timeseries' : undefined;
+    const documentType: CatalogDocumentType = docType === 'pid' ? 'pnid' : docType === 'timeseries' ? 'timeseries' : 'document';
 
     // Build local tracking entries for UI
     const localEntries = files.map(file => {

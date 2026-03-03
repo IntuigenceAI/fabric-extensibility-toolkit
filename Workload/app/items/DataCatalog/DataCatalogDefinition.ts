@@ -1,6 +1,6 @@
 export type DataSourceType = 'onelake' | 'upload' | 'sample';
 export type DocumentProcessingStatus = 'processing' | 'success' | 'failed';
-export type CatalogDocumentType = 'document' | 'pnid';
+export type CatalogDocumentType = 'document' | 'pnid' | 'timeseries';
 
 export interface CatalogDocumentEntry {
   id: string;

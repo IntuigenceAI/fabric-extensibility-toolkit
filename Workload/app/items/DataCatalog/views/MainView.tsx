@@ -193,7 +193,7 @@ export function MainView({ onAddData }: MainViewProps) {
         mimeType: guessMimeType(f.fileName),
         sizeBytes: 0,
         sourceType: 'onelake',
-        documentType: f.fileType === 'pnid' ? 'pnid' : 'document',
+        documentType: f.fileType === 'pnid' ? 'pnid' : f.fileType === 'timeseries' ? 'timeseries' : 'document',
         processingStatus: f.status === 'failed' ? 'failed' : 'processing',
         intuigenceDocumentId: null,
         intuigenceFileId: f.fileId || null,
@@ -335,7 +335,7 @@ export function MainView({ onAddData }: MainViewProps) {
                     </td>
                     <td className={styles.td}>
                       <Badge appearance="outline" size="small">
-                        {doc.documentType === 'pnid' ? 'P&ID' : (doc.mimeType.split('/').pop()?.toUpperCase() || 'FILE')}
+                        {doc.documentType === 'pnid' ? 'P&ID' : doc.documentType === 'timeseries' ? 'Timeseries' : (doc.mimeType.split('/').pop()?.toUpperCase() || 'FILE')}
                       </Badge>
                     </td>
                     <td className={styles.td}>{formatFileSize(doc.sizeBytes)}</td>
