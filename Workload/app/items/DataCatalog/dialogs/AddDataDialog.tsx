@@ -85,7 +85,7 @@ const DOC_TYPE_OPTIONS = [
   { key: 'document', label: 'Document (pdf, docx, txt)', disabled: false },
   { key: 'pid', label: 'P&ID (pdf, png, jpg)', disabled: false },
   { key: 'table', label: 'Table (xlsx, csv)', disabled: true },
-  { key: 'timeseries', label: 'Timeseries (csv, xlsx)', disabled: true },
+  { key: 'timeseries', label: 'Timeseries (csv, xlsx)', disabled: false },
 ];
 
 interface AddDataDialogProps {
