@@ -95,7 +95,6 @@ export function DataCatalogEditor({ workloadClient }: DataCatalogEditorProps) {
             viewContext={ctx}
             onSave={catalog.save}
             saving={catalog.saving}
-            onAddData={handleAddData}
           />
         )}
         views={views}

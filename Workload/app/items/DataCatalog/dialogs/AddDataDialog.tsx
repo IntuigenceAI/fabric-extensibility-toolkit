@@ -84,9 +84,14 @@ const useStyles = makeStyles({
 const DOC_TYPE_OPTIONS = [
   { key: 'document', label: 'Document (pdf, docx, txt)', disabled: false },
   { key: 'pid', label: 'P&ID (pdf, png, jpg)', disabled: false },
-  { key: 'table', label: 'Table (xlsx, csv)', disabled: true },
   { key: 'timeseries', label: 'Timeseries (csv, xlsx)', disabled: false },
 ];
+
+const DOC_TYPE_EXTENSIONS: Record<string, string[]> = {
+  document: ['pdf', 'docx', 'doc', 'txt'],
+  pid: ['pdf', 'png', 'jpg', 'jpeg'],
+  timeseries: ['csv', 'xlsx'],
+};
 
 interface AddDataDialogProps {
   onClose: () => void;
@@ -212,6 +217,7 @@ export function AddDataDialog({ onClose, onFilesSubmitted }: AddDataDialogProps)
         lakehouseName={lakehouse.displayName}
         onSelect={handleFilePickerSelect}
         onCancel={handleFilePickerCancel}
+        allowedExtensions={DOC_TYPE_EXTENSIONS[selectedDocType]}
       />
     )}
     </>

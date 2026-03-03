@@ -31,6 +31,7 @@ export interface OneLakeFilePickerProps {
   lakehouseName: string;
   onSelect: (files: OneLakeFileSelection[]) => void;
   onCancel: () => void;
+  allowedExtensions?: string[];
 }
 
 interface FileEntry {
@@ -198,6 +199,7 @@ export function OneLakeFilePicker({
   lakehouseName,
   onSelect,
   onCancel,
+  allowedExtensions,
 }: OneLakeFilePickerProps) {
   const styles = useStyles();
 
@@ -286,9 +288,18 @@ export function OneLakeFilePicker({
     }
   };
 
+  const visibleEntries = useMemo(() => {
+    if (!allowedExtensions || allowedExtensions.length === 0) return entries;
+    return entries.filter(entry => {
+      if (entry.isDirectory) return true;
+      const ext = entry.name.split('.').pop()?.toLowerCase() || '';
+      return allowedExtensions.includes(ext);
+    });
+  }, [entries, allowedExtensions]);
+
   const currentDirFiles = useMemo(
-    () => entries.filter(e => !e.isDirectory),
-    [entries],
+    () => visibleEntries.filter(e => !e.isDirectory),
+    [visibleEntries],
   );
 
   const allCurrentFilesSelected = currentDirFiles.length > 0 &&
@@ -386,7 +397,7 @@ export function OneLakeFilePicker({
             <MessageBar intent="error">
               <MessageBarBody>{error}</MessageBarBody>
             </MessageBar>
-          ) : entries.length === 0 ? (
+          ) : visibleEntries.length === 0 ? (
             <div className={styles.centerContent}>
               <FolderRegular fontSize={48} />
               <Text size={300}>This folder is empty</Text>
@@ -409,7 +420,7 @@ export function OneLakeFilePicker({
                 </tr>
               </thead>
               <tbody>
-                {entries.map(entry => {
+                {visibleEntries.map(entry => {
                   if (entry.isDirectory) {
                     return (
                       <tr
