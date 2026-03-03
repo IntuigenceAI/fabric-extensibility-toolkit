@@ -14,12 +14,12 @@ import {
 import {
   Search20Regular,
   Add20Regular,
+  Delete20Regular,
   DocumentRegular,
   DocumentPdfRegular,
   ImageRegular,
   TableRegular,
   Eye20Regular,
-  MoreHorizontal20Regular,
 } from '@fluentui/react-icons';
 import { useViewNavigation } from '../../../components/ItemEditor';
 import { useDataCatalogContext } from '../DataCatalogContext';
@@ -98,11 +98,6 @@ const useStyles = makeStyles({
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-  },
-  actionsCell: {
-    display: 'flex',
-    ...shorthands.gap('4px'),
-    alignItems: 'center',
   },
   emptyState: {
     display: 'flex',
@@ -214,7 +209,7 @@ export function MainView({ onAddData }: MainViewProps) {
       docs = docs.filter(d => d.fileName.toLowerCase().includes(q));
     }
     if (typeFilter !== 'all') {
-      docs = docs.filter(d => d.mimeType.includes(typeFilter));
+      docs = docs.filter(d => (d.documentType || 'document') === typeFilter);
     }
     return docs;
   }, [allDocs, searchQuery, typeFilter]);
@@ -241,6 +236,10 @@ export function MainView({ onAddData }: MainViewProps) {
     }
   };
 
+  const handleDeleteSelected = () => {
+    console.log('[DataCatalog] Delete requested for document IDs:', Array.from(selectedIds));
+  };
+
   return (
     <div className={styles.container}>
       {/* Header */}
@@ -262,16 +261,25 @@ export function MainView({ onAddData }: MainViewProps) {
         />
         <Combobox
           className={styles.filterCombo}
-          value={typeFilter === 'all' ? 'All types' : typeFilter}
+          value={typeFilter === 'all' ? 'All types' : typeFilter === 'pnid' ? 'P&ID' : typeFilter === 'timeseries' ? 'Timeseries' : 'Document'}
           onOptionSelect={(_, data) => setTypeFilter(data.optionValue || 'all')}
           selectedOptions={[typeFilter]}
         >
           <Option value="all">All types</Option>
-          <Option value="pdf">PDF</Option>
           <Option value="document">Document</Option>
-          <Option value="image">Image</Option>
+          <Option value="pnid">P&amp;ID</Option>
+          <Option value="timeseries">Timeseries</Option>
         </Combobox>
         <div className={styles.spacer} />
+        {selectedIds.size > 0 && (
+          <Button
+            appearance="subtle"
+            icon={<Delete20Regular />}
+            onClick={handleDeleteSelected}
+          >
+            Delete ({selectedIds.size})
+          </Button>
+        )}
         <Button
           appearance="primary"
           icon={<Add20Regular />}
@@ -306,8 +314,7 @@ export function MainView({ onAddData }: MainViewProps) {
                 <th className={styles.th}>Type</th>
                 <th className={styles.th}>File size</th>
                 <th className={styles.th}>Status</th>
-                <th className={styles.th}>Uploaded by</th>
-                <th className={styles.th}>Date Created</th>
+                <th className={styles.th}>Date uploaded</th>
                 <th className={styles.th}>Actions</th>
               </tr>
             </thead>
@@ -335,33 +342,24 @@ export function MainView({ onAddData }: MainViewProps) {
                     </td>
                     <td className={styles.td}>
                       <Badge appearance="outline" size="small">
-                        {doc.documentType === 'pnid' ? 'P&ID' : doc.documentType === 'timeseries' ? 'Timeseries' : (doc.mimeType.split('/').pop()?.toUpperCase() || 'FILE')}
+                        {doc.documentType === 'pnid' ? 'P&ID' : doc.documentType === 'timeseries' ? 'Timeseries' : 'Document'}
                       </Badge>
                     </td>
                     <td className={styles.td}>{formatFileSize(doc.sizeBytes)}</td>
                     <td className={styles.td}>{getStatusBadge(doc.processingStatus)}</td>
-                    <td className={styles.td}>{doc.addedBy}</td>
                     <td className={styles.td}>
                       {new Date(doc.createdAt).toLocaleDateString()}
                     </td>
                     <td className={styles.td}>
-                      <div className={styles.actionsCell}>
-                        <Button
-                          appearance="subtle"
-                          size="small"
-                          icon={<Eye20Regular />}
-                          onClick={() => handleViewDetails(doc)}
-                          disabled={doc.processingStatus !== 'success'}
-                        >
-                          View
-                        </Button>
-                        <Button
-                          appearance="subtle"
-                          size="small"
-                          icon={<MoreHorizontal20Regular />}
-                          aria-label="More actions"
-                        />
-                      </div>
+                      <Button
+                        appearance="subtle"
+                        size="small"
+                        icon={<Eye20Regular />}
+                        onClick={() => handleViewDetails(doc)}
+                        disabled={doc.processingStatus !== 'success'}
+                      >
+                        View
+                      </Button>
                     </td>
                   </tr>
                 );
