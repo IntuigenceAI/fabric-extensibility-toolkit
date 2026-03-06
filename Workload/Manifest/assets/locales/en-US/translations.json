@@ -7,10 +7,10 @@
     "Workload_Hub_GetStarted_1_Title": "Get Started",
     "Workload_Hub_GetStarted_1_Sub_Title": "Create your first Agent Session",
     "Workload_Hub_GetStarted_1_Description": "Start chatting with PAM to explore your plant data",
-    "DataCatalog_DisplayName": "Data Catalog",
-    "DataCatalog_DisplayName_Plural": "Data Catalogs",
+    "DataCatalog_DisplayName": "Data Catalog {{ENV_SUFFIX}}",
+    "DataCatalog_DisplayName_Plural": "Data Catalogs {{ENV_SUFFIX}}",
     "DataCatalog_Description": "Intelligent document processing and knowledge management for industrial assets",
-    "IntelligentBoard_DisplayName": "Intelligent Board",
-    "IntelligentBoard_DisplayName_Plural": "Intelligent Boards",
+    "IntelligentBoard_DisplayName": "Intelligent Board {{ENV_SUFFIX}}",
+    "IntelligentBoard_DisplayName_Plural": "Intelligent Boards {{ENV_SUFFIX}}",
     "IntelligentBoard_Description": "Interactive dashboards with AI-powered insights for plant operations"
 }
