@@ -74,31 +74,32 @@ export function useDocumentProcessing(
   const verifyDocumentIndexed = useCallback(async (
     fileStatus: FileStatusResponse,
     fileId: string,
-  ): Promise<{ ready: boolean; failed: boolean; documentId: string | null; graphId: string | null; error?: string }> => {
-    if (!apiClient) return { ready: false, failed: false, documentId: null, graphId: null };
+  ): Promise<{ ready: boolean; failed: boolean; documentId: string | null; graphId: string | null; fileSize: number | null; error?: string }> => {
+    if (!apiClient) return { ready: false, failed: false, documentId: null, graphId: null, fileSize: null };
 
     const documentId = fileStatus.properties?.documentId as string | undefined;
     if (!documentId) {
       // No linked document yet — keep polling
-      return { ready: false, failed: false, documentId: null, graphId: null };
+      return { ready: false, failed: false, documentId: null, graphId: null, fileSize: null };
     }
 
     try {
       const doc: DocumentDetails = await apiClient.getDocument(documentId);
+      const docFileSize = Number(doc.file_size) || null;
 
       if (doc.is_indexed === true || doc.status === 'success') {
         const props = doc.properties as Record<string, unknown> | undefined;
         const graphId = (props?.graph_id as string) || null;
-        return { ready: true, failed: false, documentId, graphId };
+        return { ready: true, failed: false, documentId, graphId, fileSize: docFileSize };
       }
       if (doc.status === 'failed') {
-        return { ready: false, failed: true, documentId, graphId: null, error: (doc.error_message as string) || 'Document processing failed' };
+        return { ready: false, failed: true, documentId, graphId: null, fileSize: docFileSize, error: (doc.error_message as string) || 'Document processing failed' };
       }
       // Still waiting for processing to complete
-      return { ready: false, failed: false, documentId, graphId: null };
+      return { ready: false, failed: false, documentId, graphId: null, fileSize: docFileSize };
     } catch (err) {
       console.warn('[useDocumentProcessing] Document check failed, continuing poll:', err);
-      return { ready: false, failed: false, documentId, graphId: null };
+      return { ready: false, failed: false, documentId, graphId: null, fileSize: null };
     }
   }, [apiClient]);
 
@@ -123,7 +124,7 @@ export function useDocumentProcessing(
             id: localId,
             fileName: status.originalFilename,
             mimeType: status.mimeType || 'application/octet-stream',
-            sizeBytes: status.fileSize || 0,
+            sizeBytes: Number(status.fileSize) || 0,
             sourceType: 'onelake',
             documentType,
             processingStatus: 'failed',
@@ -154,7 +155,7 @@ export function useDocumentProcessing(
               id: localId,
               fileName: status.originalFilename,
               mimeType: status.mimeType || 'application/octet-stream',
-              sizeBytes: status.fileSize || 0,
+              sizeBytes: Number(status.fileSize) || 0,
               sourceType: 'onelake',
               documentType,
               processingStatus: 'failed',
@@ -184,7 +185,7 @@ export function useDocumentProcessing(
             id: localId,
             fileName: status.originalFilename,
             mimeType: status.mimeType || 'application/octet-stream',
-            sizeBytes: status.fileSize || 0,
+            sizeBytes: Number(status.fileSize) || docCheck.fileSize || 0,
             sourceType: 'onelake',
             documentType,
             processingStatus: 'success',

@@ -103,15 +103,39 @@ export function useDataCatalog(
     if (!sync.definition || !apiClient || !authReady || statusRefreshDone.current) return;
     statusRefreshDone.current = true;
 
+    // Docs still processing — need status check
     const pendingDocs = sync.definition.documents.filter(
       d => d.processingStatus !== 'success' && d.processingStatus !== 'failed' && d.intuigenceFileId
     );
-    if (pendingDocs.length === 0) return;
+    // Docs already success but missing file size — need backfill
+    const zeroSizeDocs = sync.definition.documents.filter(
+      d => d.processingStatus === 'success' && d.sizeBytes === 0 && d.intuigenceDocumentId
+    );
+
+    if (pendingDocs.length === 0 && zeroSizeDocs.length === 0) return;
 
     (async () => {
       let anyUpdated = false;
       const updatedDocuments = [...sync.definition!.documents];
 
+      // --- Backfill file size for completed entries with 0B ---
+      for (const doc of zeroSizeDocs) {
+        try {
+          const docDetails = await apiClient.getDocument(doc.intuigenceDocumentId!);
+          const docFileSize = Number(docDetails.file_size) || 0;
+          if (docFileSize > 0) {
+            const idx = updatedDocuments.findIndex(d => d.id === doc.id);
+            if (idx >= 0) {
+              updatedDocuments[idx] = { ...updatedDocuments[idx], sizeBytes: docFileSize };
+              anyUpdated = true;
+            }
+          }
+        } catch {
+          // Document not accessible — skip
+        }
+      }
+
+      // --- Check status for still-processing entries ---
       for (const doc of pendingDocs) {
         try {
           const fileStatus = await apiClient.getFileStatus(doc.intuigenceFileId!);
@@ -126,11 +150,13 @@ export function useDataCatalog(
                   if (idx >= 0) {
                     const props = docDetails.properties as Record<string, unknown> | undefined;
                     const graphId = (props?.graph_id as string) || null;
+                    const docFileSize = Number(docDetails.file_size) || Number(fileStatus.fileSize) || 0;
                     updatedDocuments[idx] = {
                       ...updatedDocuments[idx],
                       processingStatus: 'success',
                       intuigenceDocumentId: documentId,
                       ...(graphId && { intuigenceGraphId: graphId }),
+                      ...(docFileSize > 0 && { sizeBytes: docFileSize }),
                     };
                     anyUpdated = true;
                   }
