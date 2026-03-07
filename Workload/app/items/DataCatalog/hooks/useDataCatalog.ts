@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { WorkloadClientAPI } from '@ms-fabric/workload-client';
 import { IntuigenceAPIClient } from '../../../clients/IntuigenceAPIClient';
-import { CatalogDocumentEntry, recomputeStats } from '../DataCatalogDefinition';
+import { CatalogDocumentEntry, CatalogDocumentType, recomputeStats } from '../DataCatalogDefinition';
 import { useOneLakeSync } from './useOneLakeSync';
 import { useDocumentProcessing } from './useDocumentProcessing';
 import { DataCatalogContextValue, OneLakeFileSelection } from '../DataCatalogContext';
@@ -119,16 +119,13 @@ export function useDataCatalog(
     if (!sync.definition || !apiClient || !authReady || statusRefreshDone.current) return;
     statusRefreshDone.current = true;
 
-    // Docs not yet successful — need status check.
-    // Include 'failed' entries too: the file_uploads table may show 'failed' even
-    // though the document was actually processed successfully (P&ID workers update
-    // the documents table but not the file_uploads table).
+    // Docs not yet successful — need status check
     const pendingDocs = sync.definition.documents.filter(
       d => d.processingStatus !== 'success' && d.intuigenceFileId
     );
     // Docs already success but missing file size — need backfill
     const zeroSizeDocs = sync.definition.documents.filter(
-      d => d.processingStatus === 'success' && d.sizeBytes === 0 && d.intuigenceDocumentId
+      d => d.processingStatus === 'success' && d.sizeBytes === 0 && d.intuigenceFileId
     );
 
     if (pendingDocs.length === 0 && zeroSizeDocs.length === 0) return;
@@ -137,12 +134,13 @@ export function useDataCatalog(
       // Collect changes by doc ID so we can merge into the latest definition
       // at save time, avoiding stale-closure overwrites from concurrent polling.
       const changes = new Map<string, Partial<CatalogDocumentEntry>>();
-      const stillProcessingIds: { fileId: string; localId: string; fileName: string }[] = [];
+      const stillProcessingIds: { fileId: string; localId: string; fileName: string; mimeType: string; documentType: CatalogDocumentType }[] = [];
 
       // --- Backfill file size for completed entries with 0B ---
+      // fileId === documentId, so use intuigenceFileId directly.
       for (const doc of zeroSizeDocs) {
         try {
-          const docDetails = await apiClient.getDocument(doc.intuigenceDocumentId!);
+          const docDetails = await apiClient.getDocument(doc.intuigenceFileId!);
           const docFileSize = Number(docDetails.file_size) || 0;
           if (docFileSize > 0) {
             changes.set(doc.id, { sizeBytes: docFileSize });
@@ -153,24 +151,9 @@ export function useDataCatalog(
       }
 
       // --- Check status for non-success entries ---
-      // Don't rely on file_uploads.processingStatus alone — P&ID workers update
-      // the documents table but not file_uploads. Check the document directly.
+      // fileId === documentId, so query the documents table directly.
       for (const doc of pendingDocs) {
-        let docId = doc.intuigenceDocumentId;
-        if (!docId) {
-          try {
-            const fileStatus = await apiClient.getFileStatus(doc.intuigenceFileId!);
-            docId = (fileStatus.properties?.documentId as string) || null;
-          } catch { /* skip */ }
-        }
-
-        if (!docId) {
-          // No document yet — track for polling resume
-          if (doc.intuigenceFileId) {
-            stillProcessingIds.push({ fileId: doc.intuigenceFileId, localId: doc.id, fileName: doc.fileName });
-          }
-          continue;
-        }
+        const docId = doc.intuigenceDocumentId || doc.intuigenceFileId!;
 
         try {
           const docDetails = await apiClient.getDocument(docId);
@@ -191,13 +174,24 @@ export function useDataCatalog(
               errorMessage: (docDetails.error_message as string) || 'Processing failed',
             });
           } else {
-            // Still processing — track for polling resume
-            if (doc.intuigenceFileId) {
-              stillProcessingIds.push({ fileId: doc.intuigenceFileId, localId: doc.id, fileName: doc.fileName });
-            }
+            // Still processing — resume polling
+            stillProcessingIds.push({
+              fileId: doc.intuigenceFileId!,
+              localId: doc.id,
+              fileName: doc.fileName,
+              mimeType: doc.mimeType,
+              documentType: doc.documentType,
+            });
           }
         } catch {
-          // Document not accessible — skip, let polling handle it
+          // Document not accessible (404 or error) — resume polling
+          stillProcessingIds.push({
+            fileId: doc.intuigenceFileId!,
+            localId: doc.id,
+            fileName: doc.fileName,
+            mimeType: doc.mimeType,
+            documentType: doc.documentType,
+          });
         }
       }
 
@@ -219,7 +213,7 @@ export function useDataCatalog(
 
       // Resume polling for docs still processing after refresh
       for (const doc of stillProcessingIds) {
-        processing.resumePolling(doc.fileId, doc.localId, doc.fileName);
+        processing.resumePolling(doc.fileId, doc.localId, doc.fileName, doc.mimeType, doc.documentType);
       }
     })();
   }, [sync.definition, apiClient, authReady, processing]);
