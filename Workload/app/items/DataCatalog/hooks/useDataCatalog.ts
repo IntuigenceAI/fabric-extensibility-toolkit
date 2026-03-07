@@ -58,13 +58,24 @@ export function useDataCatalog(
     return () => { cancelled = true; };
   }, [apiClient, sync.workspaceId]);
 
+  // Keep refs to the latest definition and saveDefinition so that
+  // handleDocumentReady (called from setInterval callbacks) always reads
+  // the current state instead of a stale closure snapshot.
+  const definitionRef = useRef(sync.definition);
+  useEffect(() => { definitionRef.current = sync.definition; }, [sync.definition]);
+
+  const saveDefinitionRef = useRef(sync.saveDefinition);
+  useEffect(() => { saveDefinitionRef.current = sync.saveDefinition; }, [sync.saveDefinition]);
+
   // Handle document ready callback from processing hook.
   // Uses upsert logic: if an entry with the same intuigenceFileId already exists,
   // update it in place; otherwise append a new entry.
+  // Stable callback — uses refs to avoid stale closures in polling intervals.
   const handleDocumentReady = useCallback((entry: CatalogDocumentEntry) => {
-    if (!sync.definition) return;
+    const currentDef = definitionRef.current;
+    if (!currentDef) return;
 
-    const existing = sync.definition.documents;
+    const existing = currentDef.documents;
     let updatedDocs: CatalogDocumentEntry[];
 
     const matchIdx = entry.intuigenceFileId
@@ -79,16 +90,21 @@ export function useDataCatalog(
     }
 
     const updatedDef = recomputeStats({
-      ...sync.definition,
+      ...currentDef,
       documents: updatedDocs,
     });
 
-    sync.saveDefinition(updatedDef).catch((err) => {
+    // Update the ref synchronously so that concurrent calls (e.g., two
+    // polling intervals firing before React re-renders) see each other's
+    // changes instead of reading the same stale snapshot.
+    definitionRef.current = updatedDef;
+
+    saveDefinitionRef.current(updatedDef).catch((err) => {
       console.error('[useDataCatalog] Auto-save failed:', err);
     });
-  }, [sync]);
+  }, []);
 
-  const processing = useDocumentProcessing(apiClient, workloadClient, sync.itemObjectId, handleDocumentReady);
+  const processing = useDocumentProcessing(apiClient, sync.itemObjectId, handleDocumentReady);
 
   // One-time status refresh: when the definition loads, check all non-terminal entries
   // against the backend API and update their status. This handles the case where
@@ -103,9 +119,12 @@ export function useDataCatalog(
     if (!sync.definition || !apiClient || !authReady || statusRefreshDone.current) return;
     statusRefreshDone.current = true;
 
-    // Docs still processing — need status check
+    // Docs not yet successful — need status check.
+    // Include 'failed' entries too: the file_uploads table may show 'failed' even
+    // though the document was actually processed successfully (P&ID workers update
+    // the documents table but not the file_uploads table).
     const pendingDocs = sync.definition.documents.filter(
-      d => d.processingStatus !== 'success' && d.processingStatus !== 'failed' && d.intuigenceFileId
+      d => d.processingStatus !== 'success' && d.intuigenceFileId
     );
     // Docs already success but missing file size — need backfill
     const zeroSizeDocs = sync.definition.documents.filter(
@@ -135,59 +154,52 @@ export function useDataCatalog(
         }
       }
 
-      // --- Check status for still-processing entries ---
+      // --- Check status for non-success entries ---
+      // Don't rely on file_uploads.processingStatus alone — P&ID workers update
+      // the documents table but not file_uploads. Check the document directly.
       for (const doc of pendingDocs) {
-        try {
-          const fileStatus = await apiClient.getFileStatus(doc.intuigenceFileId!);
+        let docId = doc.intuigenceDocumentId;
+        if (!docId) {
+          // No document linked yet — check file_uploads for a documentId
+          try {
+            const fileStatus = await apiClient.getFileStatus(doc.intuigenceFileId!);
+            docId = (fileStatus.properties?.documentId as string) || null;
+          } catch { /* skip */ }
+        }
 
-          if (fileStatus.processingStatus === 'completed') {
-            const documentId = fileStatus.properties?.documentId as string | undefined;
-            if (documentId) {
-              try {
-                const docDetails = await apiClient.getDocument(documentId);
-                if (docDetails.is_indexed === true || docDetails.status === 'success') {
-                  const idx = updatedDocuments.findIndex(d => d.id === doc.id);
-                  if (idx >= 0) {
-                    const props = docDetails.properties as Record<string, unknown> | undefined;
-                    const graphId = (props?.graph_id as string) || null;
-                    const docFileSize = Number(docDetails.file_size) || Number(fileStatus.fileSize) || 0;
-                    updatedDocuments[idx] = {
-                      ...updatedDocuments[idx],
-                      processingStatus: 'success',
-                      intuigenceDocumentId: documentId,
-                      ...(graphId && { intuigenceGraphId: graphId }),
-                      ...(docFileSize > 0 && { sizeBytes: docFileSize }),
-                    };
-                    anyUpdated = true;
-                  }
-                } else if (docDetails.status === 'failed') {
-                  const idx = updatedDocuments.findIndex(d => d.id === doc.id);
-                  if (idx >= 0) {
-                    updatedDocuments[idx] = {
-                      ...updatedDocuments[idx],
-                      processingStatus: 'failed',
-                      errorMessage: (docDetails.error_message as string) || 'Processing failed',
-                    };
-                    anyUpdated = true;
-                  }
-                }
-              } catch {
-                // Document not found or not accessible — skip
-              }
+        if (!docId) continue; // No document yet — polling will handle it
+
+        try {
+          const docDetails = await apiClient.getDocument(docId);
+          if (docDetails.is_indexed === true || docDetails.status === 'success') {
+            const idx = updatedDocuments.findIndex(d => d.id === doc.id);
+            if (idx >= 0) {
+              const props = docDetails.properties as Record<string, unknown> | undefined;
+              const graphId = (props?.graph_id as string) || null;
+              const docFileSize = Number(docDetails.file_size) || 0;
+              updatedDocuments[idx] = {
+                ...updatedDocuments[idx],
+                processingStatus: 'success',
+                intuigenceDocumentId: docId,
+                errorMessage: null,
+                ...(graphId && { intuigenceGraphId: graphId }),
+                ...(docFileSize > 0 && { sizeBytes: docFileSize }),
+              };
+              anyUpdated = true;
             }
-          } else if (fileStatus.processingStatus === 'failed') {
+          } else if (docDetails.status === 'failed') {
             const idx = updatedDocuments.findIndex(d => d.id === doc.id);
             if (idx >= 0) {
               updatedDocuments[idx] = {
                 ...updatedDocuments[idx],
                 processingStatus: 'failed',
-                errorMessage: fileStatus.processingErrorMessage || 'Processing failed',
+                errorMessage: (docDetails.error_message as string) || 'Processing failed',
               };
               anyUpdated = true;
             }
           }
         } catch {
-          // File not found or API error — skip, let polling handle it
+          // Document not accessible — skip, let polling handle it
         }
       }
 
