@@ -1,8 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { IntuigenceAPIClient, FileStatusResponse, DocumentDetails } from '../../../clients/IntuigenceAPIClient';
 import type { OneLakeIngestRequest } from '../../../clients/IntuigenceAPIClient';
-import { WorkloadClientAPI } from '@ms-fabric/workload-client';
-import { DataSourceType, CatalogDocumentEntry, CatalogDocumentType } from '../DataCatalogDefinition';
+import { DataSourceType, CatalogDocumentEntry, CatalogDocumentType, DocumentProcessingStatus } from '../DataCatalogDefinition';
 import { OneLakeFileSelection } from '../DataCatalogContext';
 
 export interface ProcessingFile {
@@ -48,23 +47,60 @@ function guessMimeType(fileName: string): string {
   return mimeMap[ext] || 'application/octet-stream';
 }
 
+/** Build a CatalogDocumentEntry from file status and processing result. */
+function buildDocumentEntry(
+  localId: string,
+  fileStatus: FileStatusResponse,
+  fileId: string,
+  documentType: CatalogDocumentType,
+  result: {
+    processingStatus: DocumentProcessingStatus;
+    documentId: string | null;
+    graphId: string | null;
+    fileSize: number;
+    error: string | null;
+  },
+): CatalogDocumentEntry {
+  return {
+    id: localId,
+    fileName: fileStatus.originalFilename,
+    mimeType: fileStatus.mimeType || 'application/octet-stream',
+    sizeBytes: result.fileSize,
+    sourceType: 'onelake',
+    documentType,
+    processingStatus: result.processingStatus,
+    intuigenceDocumentId: result.documentId,
+    intuigenceFileId: fileId,
+    intuigenceGraphId: result.graphId,
+    errorMessage: result.error,
+    lastUpdated: new Date().toISOString(),
+    createdAt: fileStatus.createdAt,
+    addedBy: 'Fabric User',
+  };
+}
+
 export function useDocumentProcessing(
   apiClient: IntuigenceAPIClient | null,
-  workloadClient: WorkloadClientAPI,
   itemObjectId: string | undefined,
   onDocumentReady: (entry: CatalogDocumentEntry) => void,
 ): UseDocumentProcessingResult {
   const [activeFiles, setActiveFiles] = useState<ProcessingFile[]>([]);
   const pollTimers = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
 
-  // Reset all state when switching items
+  // Use a ref for onDocumentReady so setInterval callbacks always call the
+  // latest version, avoiding stale closures that read outdated definitions.
+  const onDocumentReadyRef = useRef(onDocumentReady);
+  useEffect(() => { onDocumentReadyRef.current = onDocumentReady; }, [onDocumentReady]);
+
+  // Clear all poll timers and reset state when switching items or on unmount.
   useEffect(() => {
-    // Clear all poll timers
-    for (const timer of pollTimers.current.values()) {
-      clearInterval(timer);
-    }
-    pollTimers.current.clear();
-    setActiveFiles([]);
+    return () => {
+      for (const timer of pollTimers.current.values()) {
+        clearInterval(timer);
+      }
+      pollTimers.current.clear();
+      setActiveFiles([]);
+    };
   }, [itemObjectId]);
 
   const updateFile = useCallback((localId: string, updates: Partial<ProcessingFile>) => {
@@ -79,7 +115,6 @@ export function useDocumentProcessing(
 
     const documentId = fileStatus.properties?.documentId as string | undefined;
     if (!documentId) {
-      // No linked document yet — keep polling
       return { ready: false, failed: false, documentId: null, graphId: null, fileSize: null };
     }
 
@@ -95,7 +130,6 @@ export function useDocumentProcessing(
       if (doc.status === 'failed') {
         return { ready: false, failed: true, documentId, graphId: null, fileSize: docFileSize, error: (doc.error_message as string) || 'Document processing failed' };
       }
-      // Still waiting for processing to complete
       return { ready: false, failed: false, documentId, graphId: null, fileSize: docFileSize };
     } catch (err) {
       console.warn('[useDocumentProcessing] Document check failed, continuing poll:', err);
@@ -104,128 +138,93 @@ export function useDocumentProcessing(
   }, [apiClient]);
 
   const startPolling = useCallback((localId: string, fileId: string, documentType: CatalogDocumentType = 'document') => {
-    if (!apiClient) return;
-    // Don't start duplicate pollers
-    if (pollTimers.current.has(localId)) return;
+    if (!apiClient || pollTimers.current.has(localId)) return;
 
     const interval = setInterval(async () => {
-      try {
-        const status: FileStatusResponse = await apiClient.getFileStatus(fileId);
+      const stopPolling = () => {
+        clearInterval(interval);
+        pollTimers.current.delete(localId);
+      };
 
-        if (status.processingStatus === 'failed') {
-          clearInterval(interval);
-          pollTimers.current.delete(localId);
-          updateFile(localId, {
-            status: 'failed',
-            error: status.processingErrorMessage || 'Processing failed',
-          });
-          // Notify parent so it can update the saved entry
-          onDocumentReady({
-            id: localId,
-            fileName: status.originalFilename,
-            mimeType: status.mimeType || 'application/octet-stream',
-            sizeBytes: Number(status.fileSize) || 0,
-            sourceType: 'onelake',
-            documentType,
+      try {
+        const fileStatus: FileStatusResponse = await apiClient.getFileStatus(fileId);
+
+        // File-level failure
+        if (fileStatus.processingStatus === 'failed') {
+          stopPolling();
+          updateFile(localId, { status: 'failed', error: fileStatus.processingErrorMessage || 'Processing failed' });
+          onDocumentReadyRef.current(buildDocumentEntry(localId, fileStatus, fileId, documentType, {
             processingStatus: 'failed',
-            intuigenceDocumentId: null,
-            intuigenceFileId: fileId,
-            intuigenceGraphId: null,
-            errorMessage: status.processingErrorMessage || 'Processing failed',
-            lastUpdated: new Date().toISOString(),
-            createdAt: status.createdAt,
-            addedBy: 'Fabric User',
-          });
+            documentId: null,
+            graphId: null,
+            fileSize: Number(fileStatus.fileSize) || 0,
+            error: fileStatus.processingErrorMessage || 'Processing failed',
+          }));
           return;
         }
 
-        if (status.processingStatus === 'completed') {
-          // File extraction is done, but embeddings may still be running.
-          // Verify the linked document is fully indexed before marking success.
-          const docCheck = await verifyDocumentIndexed(status, fileId);
+        // Check document indexing status when:
+        // - File processing is 'completed' (normal docs), OR
+        // - A documentId is already linked (P&IDs — the Python worker updates
+        //   the documents table but not file_uploads, so processingStatus may
+        //   stay at 'processing' even though the document is fully indexed).
+        const shouldCheckDocument = fileStatus.processingStatus === 'completed' || !!fileStatus.properties?.documentId;
 
-          if (docCheck.failed) {
-            clearInterval(interval);
-            pollTimers.current.delete(localId);
-            updateFile(localId, {
-              status: 'failed',
-              error: docCheck.error || 'Document processing failed',
-            });
-            onDocumentReady({
-              id: localId,
-              fileName: status.originalFilename,
-              mimeType: status.mimeType || 'application/octet-stream',
-              sizeBytes: Number(status.fileSize) || 0,
-              sourceType: 'onelake',
-              documentType,
-              processingStatus: 'failed',
-              intuigenceDocumentId: docCheck.documentId,
-              intuigenceFileId: fileId,
-              intuigenceGraphId: null,
-              errorMessage: docCheck.error || 'Document processing failed',
-              lastUpdated: new Date().toISOString(),
-              createdAt: status.createdAt,
-              addedBy: 'Fabric User',
-            });
+        if (shouldCheckDocument) {
+          const docCheck = await verifyDocumentIndexed(fileStatus, fileId);
+
+          if (docCheck.ready) {
+            stopPolling();
+            updateFile(localId, { status: 'completed', progress: 100, documentId: docCheck.documentId || undefined });
+            onDocumentReadyRef.current(buildDocumentEntry(localId, fileStatus, fileId, documentType, {
+              processingStatus: 'success',
+              documentId: docCheck.documentId,
+              graphId: docCheck.graphId,
+              fileSize: Number(fileStatus.fileSize) || docCheck.fileSize || 0,
+              error: null,
+            }));
             return;
           }
 
-          if (!docCheck.ready) {
-            // Embeddings still in progress — keep polling
+          if (docCheck.failed) {
+            stopPolling();
+            updateFile(localId, { status: 'failed', error: docCheck.error || 'Document processing failed' });
+            onDocumentReadyRef.current(buildDocumentEntry(localId, fileStatus, fileId, documentType, {
+              processingStatus: 'failed',
+              documentId: docCheck.documentId,
+              graphId: null,
+              fileSize: Number(fileStatus.fileSize) || 0,
+              error: docCheck.error || 'Document processing failed',
+            }));
+            return;
+          }
+
+          // File extraction done but embeddings still running
+          if (fileStatus.processingStatus === 'completed') {
             updateFile(localId, { status: 'processing', progress: 75, documentId: docCheck.documentId || undefined });
             return;
           }
-
-          // Fully indexed — mark success
-          clearInterval(interval);
-          pollTimers.current.delete(localId);
-          updateFile(localId, { status: 'completed', progress: 100, documentId: docCheck.documentId || undefined });
-
-          onDocumentReady({
-            id: localId,
-            fileName: status.originalFilename,
-            mimeType: status.mimeType || 'application/octet-stream',
-            sizeBytes: Number(status.fileSize) || docCheck.fileSize || 0,
-            sourceType: 'onelake',
-            documentType,
-            processingStatus: 'success',
-            intuigenceDocumentId: docCheck.documentId,
-            intuigenceFileId: fileId,
-            intuigenceGraphId: docCheck.graphId,
-            errorMessage: null,
-            lastUpdated: new Date().toISOString(),
-            createdAt: status.createdAt,
-            addedBy: 'Fabric User',
-          });
-          return;
         }
 
         // Still in earlier stages (pending / queued / processing)
-        const progressMap: Record<string, number> = {
-          pending: 10,
-          queued: 20,
-          processing: 50,
-        };
+        const progressMap: Record<string, number> = { pending: 10, queued: 20, processing: 50 };
         updateFile(localId, {
           status: 'processing',
-          progress: progressMap[status.processingStatus] || 30,
+          progress: progressMap[fileStatus.processingStatus] || 30,
         });
       } catch (err) {
         console.error('[useDocumentProcessing] Poll error:', err);
-        clearInterval(interval);
-        pollTimers.current.delete(localId);
+        stopPolling();
         updateFile(localId, { status: 'failed', error: 'Failed to check status' });
       }
     }, POLL_INTERVAL_MS);
 
     pollTimers.current.set(localId, interval);
-  }, [apiClient, updateFile, onDocumentReady, verifyDocumentIndexed]);
+  }, [apiClient, updateFile, verifyDocumentIndexed]);
 
   const resumePolling = useCallback((fileId: string, localId: string, fileName: string) => {
-    // Don't resume if already polling this file
     if (pollTimers.current.has(localId)) return;
 
-    // Add to activeFiles so the UI shows it
     setActiveFiles(prev => {
       if (prev.some(f => f.fileId === fileId)) return prev;
       return [...prev, {
@@ -245,18 +244,15 @@ export function useDocumentProcessing(
   const ingestFromOneLake = useCallback((files: OneLakeFileSelection[], docType?: string) => {
     if (!apiClient) return;
 
-    // Map UI doc type key to backend fileType enum and storage documentType
     const backendFileType = docType === 'pid' ? 'pnid' : docType === 'timeseries' ? 'timeseries' : undefined;
     const documentType: CatalogDocumentType = docType === 'pid' ? 'pnid' : docType === 'timeseries' ? 'timeseries' : 'document';
 
-    // Build local tracking entries for UI
     const localEntries = files.map(file => {
       const fileName = file.selectedPath.split('/').pop() || file.fileName;
       const localId = generateId();
       return { localId, fileName, file };
     });
 
-    // Add all files to active list with 'uploading' status
     setActiveFiles(prev => [
       ...prev,
       ...localEntries.map(({ localId, fileName, file }) => ({
@@ -270,7 +266,6 @@ export function useDocumentProcessing(
       })),
     ]);
 
-    // Build the server-side ingestion request
     const request: OneLakeIngestRequest = {
       files: localEntries.map(({ fileName, file }) => ({
         workspaceId: file.workspaceId,
@@ -282,7 +277,6 @@ export function useDocumentProcessing(
       })),
     };
 
-    // Single server-side call — backend fetches from OneLake via OBO
     (async () => {
       try {
         const response = await apiClient.ingestFromOneLake(request);
@@ -292,14 +286,9 @@ export function useDocumentProcessing(
           const { localId, fileName } = localEntries[i];
 
           if (result.status === 'accepted' && result.fileId) {
-            updateFile(localId, {
-              status: 'processing',
-              progress: 30,
-              fileId: result.fileId,
-            });
+            updateFile(localId, { status: 'processing', progress: 30, fileId: result.fileId });
 
-            // Persist a processing entry to definition.json immediately
-            onDocumentReady({
+            onDocumentReadyRef.current({
               id: localId,
               fileName,
               mimeType: guessMimeType(fileName),
@@ -318,23 +307,17 @@ export function useDocumentProcessing(
 
             startPolling(localId, result.fileId, documentType);
           } else {
-            updateFile(localId, {
-              status: 'failed',
-              error: result.error || 'Server rejected file',
-            });
+            updateFile(localId, { status: 'failed', error: result.error || 'Server rejected file' });
           }
         }
       } catch (err: any) {
         console.error('[useDocumentProcessing] OneLake ingest error:', err);
         for (const { localId } of localEntries) {
-          updateFile(localId, {
-            status: 'failed',
-            error: err.message || 'Ingestion failed',
-          });
+          updateFile(localId, { status: 'failed', error: err.message || 'Ingestion failed' });
         }
       }
     })();
-  }, [apiClient, updateFile, startPolling, onDocumentReady]);
+  }, [apiClient, updateFile, startPolling]);
 
   const removeFile = useCallback((localId: string) => {
     const timer = pollTimers.current.get(localId);
