@@ -149,26 +149,15 @@ export function useDocumentProcessing(
       try {
         const fileStatus: FileStatusResponse = await apiClient.getFileStatus(fileId);
 
-        // File-level failure
-        if (fileStatus.processingStatus === 'failed') {
-          stopPolling();
-          updateFile(localId, { status: 'failed', error: fileStatus.processingErrorMessage || 'Processing failed' });
-          onDocumentReadyRef.current(buildDocumentEntry(localId, fileStatus, fileId, documentType, {
-            processingStatus: 'failed',
-            documentId: null,
-            graphId: null,
-            fileSize: Number(fileStatus.fileSize) || 0,
-            error: fileStatus.processingErrorMessage || 'Processing failed',
-          }));
-          return;
-        }
-
         // Check document indexing status when:
-        // - File processing is 'completed' (normal docs), OR
-        // - A documentId is already linked (P&IDs — the Python worker updates
-        //   the documents table but not file_uploads, so processingStatus may
-        //   stay at 'processing' even though the document is fully indexed).
-        const shouldCheckDocument = fileStatus.processingStatus === 'completed' || !!fileStatus.properties?.documentId;
+        // - File processing is 'completed' or 'failed' — workers may update
+        //   the documents table but not file_uploads, so file_uploads can show
+        //   'failed' even though the document is successfully indexed.
+        // - A documentId is already linked (same reason as above).
+        const shouldCheckDocument =
+          fileStatus.processingStatus === 'completed' ||
+          fileStatus.processingStatus === 'failed' ||
+          !!fileStatus.properties?.documentId;
 
         if (shouldCheckDocument) {
           const docCheck = await verifyDocumentIndexed(fileStatus, fileId);
@@ -186,15 +175,16 @@ export function useDocumentProcessing(
             return;
           }
 
-          if (docCheck.failed) {
+          if (docCheck.failed || fileStatus.processingStatus === 'failed') {
             stopPolling();
-            updateFile(localId, { status: 'failed', error: docCheck.error || 'Document processing failed' });
+            const errorMsg = docCheck.error || fileStatus.processingErrorMessage || 'Processing failed';
+            updateFile(localId, { status: 'failed', error: errorMsg });
             onDocumentReadyRef.current(buildDocumentEntry(localId, fileStatus, fileId, documentType, {
               processingStatus: 'failed',
               documentId: docCheck.documentId,
               graphId: null,
               fileSize: Number(fileStatus.fileSize) || 0,
-              error: docCheck.error || 'Document processing failed',
+              error: errorMsg,
             }));
             return;
           }
