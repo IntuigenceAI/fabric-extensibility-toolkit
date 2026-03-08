@@ -183,9 +183,14 @@ export class IntuigenceAPIClient {
     return res.json();
   }
 
-  /** Delete a document. */
-  deleteDocument(docId: string): Promise<{ success: boolean }> {
-    return this.request("DELETE", `/api/v1/documents/${docId}`);
+  /** Batch delete documents. */
+  deleteDocuments(docIds: string[]): Promise<{ success: boolean }> {
+    return this.request("DELETE", "/api/v1/documents", { doc_ids: docIds });
+  }
+
+  /** Cleanup orphaned graph documents after P&ID deletion. */
+  cleanupOrphanedGraphs(): Promise<{ deleted_count: number }> {
+    return this.request("POST", "/api/v1/documents/cleanup-orphaned-graphs");
   }
 
   // -------------------------------------------------------------------------
