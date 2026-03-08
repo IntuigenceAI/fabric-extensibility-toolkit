@@ -184,14 +184,18 @@ export function useDataCatalog(
             });
           }
         } catch {
-          // Document not accessible (404 or error) — resume polling
-          stillProcessingIds.push({
-            fileId: doc.intuigenceFileId!,
-            localId: doc.id,
-            fileName: doc.fileName,
-            mimeType: doc.mimeType,
-            documentType: doc.documentType,
-          });
+          // Document not accessible (404 or error) — only resume polling if
+          // the entry was still processing. Already-failed entries with no
+          // backend record should stay as-is, not poll forever.
+          if (doc.processingStatus === 'processing') {
+            stillProcessingIds.push({
+              fileId: doc.intuigenceFileId!,
+              localId: doc.id,
+              fileName: doc.fileName,
+              mimeType: doc.mimeType,
+              documentType: doc.documentType,
+            });
+          }
         }
       }
 
@@ -222,24 +226,50 @@ export function useDataCatalog(
     processing.ingestFromOneLake(files, docType);
   }, [processing]);
 
-  const removeDocument = useCallback(async (id: string) => {
-    if (!sync.definition) return;
+  const removeDocument = useCallback(async (ids: string[]) => {
+    const currentDef = definitionRef.current;
+    if (!currentDef || ids.length === 0) return;
 
-    const doc = sync.definition.documents.find(d => d.id === id);
-    const updatedDef = recomputeStats({
-      ...sync.definition,
-      documents: sync.definition.documents.filter(d => d.id !== id),
-    });
+    const idSet = new Set(ids);
+    const docs = currentDef.documents.filter(d => idSet.has(d.id));
 
-    await sync.saveDefinition(updatedDef);
+    // Collect backend IDs for deletion
+    const backendIds = docs
+      .map(d => d.intuigenceDocumentId || d.intuigenceFileId)
+      .filter(Boolean) as string[];
 
-    // Optionally delete from backend
-    if (doc?.intuigenceDocumentId && apiClient) {
-      apiClient.deleteDocument(doc.intuigenceDocumentId).catch((err) => {
-        console.error('[useDataCatalog] Backend delete failed:', err);
-      });
+    const hasPnid = docs.some(d => d.documentType === 'pnid');
+
+    // 1. Delete from backend (404 is OK — document may not exist if processing failed)
+    if (backendIds.length > 0 && apiClient) {
+      try {
+        await apiClient.deleteDocuments(backendIds);
+      } catch (err: any) {
+        const is404 = err?.message?.includes('404');
+        if (!is404) throw err;
+      }
+      if (hasPnid) {
+        await apiClient.cleanupOrphanedGraphs().catch((err) => {
+          console.error('[useDataCatalog] Orphan graph cleanup failed:', err);
+        });
+      }
     }
-  }, [sync, apiClient]);
+
+    // 2. Stop polling timers (after backend succeeded, so they stay active on failure)
+    for (const id of ids) {
+      processing.removeFile(id);
+    }
+
+    // 3. Remove from definition.json (re-read ref for latest state after await)
+    const latestDef = definitionRef.current;
+    if (!latestDef) return;
+    const updatedDef = recomputeStats({
+      ...latestDef,
+      documents: latestDef.documents.filter(d => !idSet.has(d.id)),
+    });
+    definitionRef.current = updatedDef;
+    await saveDefinitionRef.current(updatedDef);
+  }, [apiClient, processing]);
 
   const save = useCallback(async () => {
     if (!sync.definition) return;

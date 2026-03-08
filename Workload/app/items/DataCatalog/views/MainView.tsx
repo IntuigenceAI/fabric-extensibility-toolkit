@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   Button,
   Input,
@@ -7,6 +7,13 @@ import {
   Text,
   Badge,
   Checkbox,
+  Spinner,
+  Toaster,
+  Toast,
+  ToastTitle,
+  ToastBody,
+  useToastController,
+  useId,
   makeStyles,
   tokens,
   shorthands,
@@ -20,6 +27,7 @@ import {
   ImageRegular,
   TableRegular,
   Eye20Regular,
+  Warning20Regular,
 } from '@fluentui/react-icons';
 import { useViewNavigation } from '../../../components/ItemEditor';
 import { useDataCatalogContext } from '../DataCatalogContext';
@@ -108,6 +116,39 @@ const useStyles = makeStyles({
     ...shorthands.gap('12px'),
     color: tokens.colorNeutralForeground3,
   },
+  dialogOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    zIndex: 1000,
+  },
+  dialogBox: {
+    backgroundColor: tokens.colorNeutralBackground1,
+    ...shorthands.borderRadius(tokens.borderRadiusXLarge),
+    boxShadow: tokens.shadow28,
+    width: '440px',
+    maxWidth: '90vw',
+    display: 'flex',
+    flexDirection: 'column',
+    ...shorthands.padding('24px'),
+    ...shorthands.gap('16px'),
+  },
+  dialogHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    ...shorthands.gap('8px'),
+  },
+  dialogFooter: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    ...shorthands.gap('8px'),
+  },
 });
 
 function formatFileSize(bytes: number): string {
@@ -172,6 +213,11 @@ export function MainView({ onAddData }: MainViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const toasterId = useId('mainview-toaster');
+  const { dispatchToast } = useToastController(toasterId);
 
   const documents = catalog.definition?.documents || [];
 
@@ -236,9 +282,35 @@ export function MainView({ onAddData }: MainViewProps) {
     }
   };
 
-  const handleDeleteSelected = () => {
-    console.log('[DataCatalog] Delete requested for document IDs:', Array.from(selectedIds));
-  };
+  const handleDeleteSelected = useCallback(() => {
+    setDeleteConfirmOpen(true);
+  }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
+    const count = selectedIds.size;
+    setDeleting(true);
+    try {
+      await catalog.removeDocument(Array.from(selectedIds));
+      setSelectedIds(new Set());
+      setDeleteConfirmOpen(false);
+      dispatchToast(
+        <Toast>
+          <ToastTitle>Deleted {count} document{count > 1 ? 's' : ''}</ToastTitle>
+        </Toast>,
+        { intent: 'success', timeout: 4000 }
+      );
+    } catch (err: any) {
+      dispatchToast(
+        <Toast>
+          <ToastTitle>Delete failed</ToastTitle>
+          <ToastBody>{err.message || 'Something went wrong'}</ToastBody>
+        </Toast>,
+        { intent: 'error', timeout: 6000 }
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }, [selectedIds, catalog, dispatchToast]);
 
   return (
     <div className={styles.container}>
@@ -368,6 +440,42 @@ export function MainView({ onAddData }: MainViewProps) {
           </table>
         )}
       </div>
+
+      {/* Delete confirmation dialog */}
+      {deleteConfirmOpen && (
+        <div className={styles.dialogOverlay}>
+          <div className={styles.dialogBox}>
+            <div className={styles.dialogHeader}>
+              <Warning20Regular color={tokens.colorPaletteRedForeground1} />
+              <Text size={400} weight="semibold">Delete documents</Text>
+            </div>
+            <Text>
+              Are you sure you want to delete {selectedIds.size} document{selectedIds.size > 1 ? 's' : ''}?
+              This will permanently remove them and any associated data (graphs, embeddings, timeseries).
+            </Text>
+            <div className={styles.dialogFooter}>
+              <Button
+                appearance="secondary"
+                onClick={() => setDeleteConfirmOpen(false)}
+                disabled={deleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                appearance="primary"
+                style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: tokens.colorNeutralForegroundOnBrand }}
+                onClick={handleConfirmDelete}
+                disabled={deleting}
+                icon={deleting ? <Spinner size="tiny" /> : undefined}
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Toaster toasterId={toasterId} position="bottom-end" />
     </div>
   );
 }
