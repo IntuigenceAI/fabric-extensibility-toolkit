@@ -128,7 +128,10 @@ export const RibbonToolbarAction: React.FC<RibbonToolbarActionProps> = ({
         data-testid={testId}
         icon={<IconComponent />}
         onClick={handleClick}
-      />
+        style={{ fontWeight: 400, padding: '4px 8px' }}
+      >
+        {label}
+      </ToolbarButton>
     </Tooltip>
   );
 };

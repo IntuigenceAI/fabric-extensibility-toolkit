@@ -1,1 +1,27 @@
 /* DataCatalog global styles — most styling uses Fluent UI makeStyles() */
+
+/* -----------------------------------------------------------------------
+   DataGrid overrides
+   Plain CSS is used here instead of Griffel makeStyles() because Griffel's
+   atomic CSS makes it difficult to override FluentUI's internal hover/active
+   styles with the required specificity.
+   ----------------------------------------------------------------------- */
+
+/* Sticky header — keeps column headers visible while scrolling */
+.datacatalog-grid .fui-DataGridHeader {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: #ffffff;
+}
+
+/* Row hover — visible background change on mouse over */
+.datacatalog-grid .fui-DataGridBody .fui-DataGridRow:hover {
+  background-color: #ebebeb !important;
+}
+
+/* Remove checkbox background flash on hover/active */
+.datacatalog-grid .fui-TableSelectionCell .fui-Checkbox:hover,
+.datacatalog-grid .fui-TableSelectionCell .fui-Checkbox:active {
+  background-color: transparent !important;
+}
