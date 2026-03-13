@@ -1,5 +1,5 @@
 import React from 'react';
-import { DataCatalogDefinition } from './DataCatalogDefinition';
+import { DataCatalogDefinition, EventHouseSourceConfig } from './DataCatalogDefinition';
 import { ProcessingFile } from './hooks/useDocumentProcessing';
 import { IntuigenceAPIClient } from '../../clients/IntuigenceAPIClient';
 import { WorkloadClientAPI } from '@ms-fabric/workload-client';
@@ -20,6 +20,8 @@ export interface DataCatalogContextValue {
 
   // Document management
   ingestFromOneLake: (files: OneLakeFileSelection[], docType?: string) => void;
+  ingestFromEventHouse: (config: EventHouseSourceConfig) => void;
+  syncEventHouse: () => Promise<void>;
   removeDocument: (ids: string[]) => Promise<void>;
   activeFiles: ProcessingFile[];
   removeActiveFile: (localId: string) => void;

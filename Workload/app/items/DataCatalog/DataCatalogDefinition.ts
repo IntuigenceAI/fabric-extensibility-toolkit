@@ -1,6 +1,19 @@
-export type DataSourceType = 'onelake' | 'upload' | 'sample';
+export type DataSourceType = 'onelake' | 'upload' | 'sample' | 'eventhouse';
 export type DocumentProcessingStatus = 'processing' | 'success' | 'failed';
 export type CatalogDocumentType = 'document' | 'pnid' | 'timeseries';
+
+export interface EventHouseSourceConfig {
+  eventhouseId: string;
+  eventhouseName: string;
+  workspaceId: string;
+  databaseId: string;
+  databaseName: string;
+  tableName: string;
+  queryServiceUri: string;
+  lakehouseWorkspaceId: string;
+  lakehouseItemId: string;
+  lastSyncedAt: string | null;
+}
 
 export interface CatalogDocumentEntry {
   id: string;
@@ -40,6 +53,7 @@ export interface DataCatalogDefinition {
     tenantId: string | null;
     workspaceId: string | null;
   };
+  eventhouseSource?: EventHouseSourceConfig | null;
 }
 
 export function createEmptyDefinition(name: string): DataCatalogDefinition {
@@ -62,6 +76,7 @@ export function createEmptyDefinition(name: string): DataCatalogDefinition {
       tenantId: null,
       workspaceId: null,
     },
+    eventhouseSource: null,
   };
 }
 
