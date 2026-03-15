@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
-  Button,
   Card,
   Text,
+  Spinner,
   makeStyles,
   tokens,
   shorthands,
@@ -11,6 +11,7 @@ import {
   DocumentAdd24Regular,
   DocumentCopy24Regular,
 } from '@fluentui/react-icons';
+import { useDataCatalogContext } from '../DataCatalogContext';
 
 const useStyles = makeStyles({
   container: {
@@ -53,18 +54,6 @@ const useStyles = makeStyles({
       boxShadow: tokens.shadow8,
     },
   },
-  cardDisabled: {
-    width: '240px',
-    minHeight: '200px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shorthands.gap('16px'),
-    ...shorthands.padding('32px', '24px'),
-    opacity: 0.5,
-    cursor: 'not-allowed',
-  },
   iconContainer: {
     width: '56px',
     height: '56px',
@@ -87,10 +76,31 @@ const useStyles = makeStyles({
 
 interface MethodSelectionViewProps {
   onAddData: () => void;
+  onSampleSeeded?: (fileCount: number) => void;
 }
 
-export function MethodSelectionView({ onAddData }: MethodSelectionViewProps) {
+export function MethodSelectionView({ onAddData, onSampleSeeded }: MethodSelectionViewProps) {
   const styles = useStyles();
+  const catalog = useDataCatalogContext();
+  const [seeding, setSeeding] = useState(false);
+
+  const [seedError, setSeedError] = useState<string | null>(null);
+
+  const handleSeedSample = useCallback(async () => {
+    if (seeding) return;
+    setSeeding(true);
+    setSeedError(null);
+    try {
+      const count = await catalog.seedSampleData();
+      onSampleSeeded?.(count);
+    } catch (err: any) {
+      const message = err?.message || 'Failed to load sample data';
+      console.error('[MethodSelectionView] Seed sample failed:', message);
+      setSeedError(message);
+    } finally {
+      setSeeding(false);
+    }
+  }, [catalog, seeding, onSampleSeeded]);
 
   return (
     <div className={styles.container}>
@@ -116,19 +126,20 @@ export function MethodSelectionView({ onAddData }: MethodSelectionViewProps) {
           </Text>
         </Card>
 
-        <Card className={styles.cardDisabled}>
+        <Card className={styles.card} onClick={handleSeedSample}>
           <div className={styles.iconContainer}>
-            <DocumentCopy24Regular fontSize={28} />
+            {seeding ? <Spinner size="tiny" /> : <DocumentCopy24Regular fontSize={28} />}
           </div>
           <Text weight="semibold" className={styles.cardLabel}>
-            Start with example data
+            {seeding ? 'Loading sample data...' : 'Start with example data'}
           </Text>
           <Text className={styles.cardDescription}>
-            Try a pre-loaded sample to explore the experience.
+            {seedError
+              ? seedError
+              : seeding
+              ? 'Setting up a P&ID, equipment manual, and sensor data for you.'
+              : 'Try a pre-loaded sample to explore the experience.'}
           </Text>
-          <Button appearance="secondary" size="small" disabled>
-            Coming soon
-          </Button>
         </Card>
       </div>
     </div>

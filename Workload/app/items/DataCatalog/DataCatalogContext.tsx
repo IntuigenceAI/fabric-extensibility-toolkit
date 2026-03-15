@@ -20,6 +20,7 @@ export interface DataCatalogContextValue {
 
   // Document management
   ingestFromOneLake: (files: OneLakeFileSelection[], docType?: string) => void;
+  seedSampleData: () => Promise<number>;
   removeDocument: (ids: string[]) => Promise<void>;
   activeFiles: ProcessingFile[];
   removeActiveFile: (localId: string) => void;

@@ -53,6 +53,8 @@ export interface OneLakeIngestResultItem {
   fileId: string | null;
   status: 'accepted' | 'failed';
   error?: string;
+  fileType?: string;
+  mimeType?: string;
 }
 
 export interface OneLakeIngestResponse {
@@ -173,6 +175,30 @@ export class IntuigenceAPIClient {
         'X-Fabric-Workspace-Id': this.workspaceId,
       },
       body: JSON.stringify(request),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`IntuigenceAI API error ${res.status}: ${text}`);
+    }
+
+    return res.json();
+  }
+
+  /**
+   * Seed sample documents for the "Start with example data" experience.
+   * Uses same auth pattern as ingestFromOneLake.
+   */
+  async seedSampleData(): Promise<OneLakeIngestResponse> {
+    const token = await this.authBridge.getWorkloadToken();
+
+    const res = await fetch(`${this.baseUrl}/api/v2/files/seed-sample`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'X-Fabric-Workspace-Id': this.workspaceId,
+      },
     });
 
     if (!res.ok) {

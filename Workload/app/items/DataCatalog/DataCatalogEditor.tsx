@@ -55,6 +55,19 @@ export function DataCatalogEditor({ workloadClient }: DataCatalogEditorProps) {
     );
   }, [dispatchToast]);
 
+  const handleSampleSeeded = useCallback((fileCount: number) => {
+    if (viewSetterRef.current) {
+      viewSetterRef.current('main');
+    }
+    dispatchToast(
+      <Toast>
+        <ToastTitle>Sample data loaded</ToastTitle>
+        <ToastBody>{fileCount} sample file{fileCount !== 1 ? 's are' : ' is'} being processed</ToastBody>
+      </Toast>,
+      { intent: 'info', timeout: 4000 }
+    );
+  }, [dispatchToast]);
+
   const views: RegisteredView[] = useMemo(() => [
     {
       name: 'welcome',
@@ -62,7 +75,7 @@ export function DataCatalogEditor({ workloadClient }: DataCatalogEditorProps) {
     },
     {
       name: 'method-select',
-      component: <MethodSelectionView onAddData={handleAddData} />,
+      component: <MethodSelectionView onAddData={handleAddData} onSampleSeeded={handleSampleSeeded} />,
     },
     {
       name: 'main',
@@ -73,7 +86,7 @@ export function DataCatalogEditor({ workloadClient }: DataCatalogEditorProps) {
       component: <DocumentDetailView />,
       isDetailView: true,
     },
-  ], [handleAddData]);
+  ], [handleAddData, handleSampleSeeded]);
 
   const getInitialView = useCallback(() => {
     if (!catalog.definition) return null;
