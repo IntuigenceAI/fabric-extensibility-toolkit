@@ -8,7 +8,6 @@ import {
 } from '@fluentui/react-components';
 import {
   DatabaseSearch24Regular,
-  Add24Regular,
   Play24Regular,
 } from '@fluentui/react-icons';
 import { ExtendedItemTypeV2 } from '@ms-fabric/workload-client';
@@ -112,16 +111,7 @@ export function MethodSelectionView() {
     }
   }, [workloadClient, addCatalogRef, setCurrentView]);
 
-  const handleCreateCatalog = useCallback(async () => {
-    try {
-      // Navigate Fabric host to the create-item page
-      await workloadClient.navigation.navigate('host', { path: '/create' });
-    } catch (err) {
-      console.error('[MethodSelectionView] Create catalog navigation failed:', err);
-    }
-  }, [workloadClient]);
-
-  const handleStartEmpty = useCallback(() => {
+  const handleStartFresh = useCallback(() => {
     setCurrentView('board');
   }, [setCurrentView]);
 
@@ -165,35 +155,17 @@ export function MethodSelectionView() {
           className={styles.card}
           role="button"
           tabIndex={0}
-          onClick={handleCreateCatalog}
-          onKeyDown={(e) => e.key === 'Enter' && handleCreateCatalog()}
-        >
-          <div className={styles.cardIcon}>
-            <Add24Regular fontSize={24} />
-          </div>
-          <Text size={300} weight="semibold" className={styles.cardTitle}>
-            Create Knowledge Graph
-          </Text>
-          <Text size={200} className={styles.cardDescription}>
-            Create a new Knowledge Graph and add documents
-          </Text>
-        </div>
-
-        <div
-          className={styles.card}
-          role="button"
-          tabIndex={0}
-          onClick={handleStartEmpty}
-          onKeyDown={(e) => e.key === 'Enter' && handleStartEmpty()}
+          onClick={handleStartFresh}
+          onKeyDown={(e) => e.key === 'Enter' && handleStartFresh()}
         >
           <div className={styles.cardIcon}>
             <Play24Regular fontSize={24} />
           </div>
           <Text size={300} weight="semibold" className={styles.cardTitle}>
-            Start Without Data
+            Start Fresh
           </Text>
           <Text size={200} className={styles.cardDescription}>
-            Open an empty board and connect data later
+            Open the board and start chatting with Synthetic Engineers.
           </Text>
         </div>
       </div>
