@@ -19,6 +19,7 @@ export interface ProcessingFile {
 
 export interface UseDocumentProcessingResult {
   ingestFromOneLake: (files: OneLakeFileSelection[], docType?: string) => void;
+  trackSeedFile: (fileId: string, fileName: string, mimeType: string, docType: string) => void;
   activeFiles: ProcessingFile[];
   removeFile: (localId: string) => void;
   clearCompleted: () => void;
@@ -283,8 +284,46 @@ export function useDocumentProcessing(
     setActiveFiles(prev => prev.filter(f => f.status !== 'completed' && f.status !== 'failed'));
   }, []);
 
+  const trackSeedFile = useCallback((fileId: string, fileName: string, mimeType: string, docType: string) => {
+    const localId = generateId();
+    const documentType = docType as CatalogDocumentType;
+
+    setActiveFiles(prev => [
+      ...prev,
+      {
+        localId,
+        fileName,
+        mimeType,
+        fileType: documentType,
+        sourceType: 'sample' as DataSourceType,
+        status: 'processing' as const,
+        fileId,
+      },
+    ]);
+
+    onDocumentReadyRef.current({
+      id: localId,
+      fileName,
+      mimeType,
+      sizeBytes: 0,
+      sourceType: 'sample',
+      documentType,
+      processingStatus: 'processing',
+      intuigenceDocumentId: null,
+      intuigenceFileId: fileId,
+      intuigenceGraphId: null,
+      errorMessage: null,
+      lastUpdated: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      addedBy: 'Sample Data',
+    });
+
+    startPolling(localId, fileId, fileName, mimeType, documentType);
+  }, [startPolling]);
+
   return {
     ingestFromOneLake,
+    trackSeedFile,
     activeFiles,
     removeFile,
     clearCompleted,

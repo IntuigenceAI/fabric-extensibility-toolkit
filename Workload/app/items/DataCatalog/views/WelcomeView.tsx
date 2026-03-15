@@ -104,11 +104,7 @@ const useStyles = makeStyles({
   },
 });
 
-interface WelcomeViewProps {
-  onViewSample?: () => void;
-}
-
-export function WelcomeView({ onViewSample }: WelcomeViewProps) {
+export function WelcomeView() {
   const styles = useStyles();
   const { setCurrentView } = useViewNavigation();
   const [dontShowAgain, setDontShowAgain] = useState(false);
@@ -201,13 +197,6 @@ export function WelcomeView({ onViewSample }: WelcomeViewProps) {
             onChange={(_, data) => setDontShowAgain(!!data.checked)}
           />
           <div className={styles.footerRight}>
-            <Button
-              appearance="secondary"
-              onClick={onViewSample}
-              disabled={!onViewSample}
-            >
-              View Sample
-            </Button>
             <Button appearance="primary" onClick={handleNext}>
               Next
             </Button>

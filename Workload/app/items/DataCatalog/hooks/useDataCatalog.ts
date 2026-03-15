@@ -226,6 +226,34 @@ export function useDataCatalog(
     processing.ingestFromOneLake(files, docType);
   }, [processing]);
 
+  const seedSampleData = useCallback(async () => {
+    if (!apiClient) throw new Error('API client not ready');
+    const response = await apiClient.seedSampleData();
+
+    const accepted = response.results.filter(r => r.status === 'accepted' && r.fileId);
+    const failed = response.results.filter(r => r.status === 'failed');
+
+    if (failed.length > 0) {
+      console.warn('[useDataCatalog] Some sample files failed:', failed.map(f => `${f.fileName}: ${f.error}`));
+    }
+
+    if (accepted.length === 0) {
+      throw new Error(failed[0]?.error || 'No sample files were accepted');
+    }
+
+    // Track accepted files for status polling — use backend-provided fileType/mimeType
+    for (const result of accepted) {
+      processing.trackSeedFile(
+        result.fileId!,
+        result.fileName,
+        result.mimeType || 'application/octet-stream',
+        result.fileType || 'document',
+      );
+    }
+
+    return accepted.length;
+  }, [apiClient, processing]);
+
   const removeDocument = useCallback(async (ids: string[]) => {
     const currentDef = definitionRef.current;
     if (!currentDef || ids.length === 0) return;
@@ -284,6 +312,7 @@ export function useDataCatalog(
     saving: sync.saving,
     authReady,
     ingestFromOneLake,
+    seedSampleData,
     removeDocument,
     activeFiles: processing.activeFiles,
     removeActiveFile: processing.removeFile,
