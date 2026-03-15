@@ -10,6 +10,12 @@ import {
   Toast,
   ToastTitle,
   ToastBody,
+  Dialog,
+  DialogSurface,
+  DialogBody,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   useToastController,
   useId,
   makeStyles,
@@ -154,37 +160,9 @@ const useStyles = makeStyles({
     alignItems: 'center',
     ...shorthands.gap('8px'),
   },
-  dialogOverlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+  deleteDialogHeader: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    zIndex: 1000,
-  },
-  dialogBox: {
-    backgroundColor: tokens.colorNeutralBackground1,
-    ...shorthands.borderRadius(tokens.borderRadiusXLarge),
-    boxShadow: tokens.shadow28,
-    width: '440px',
-    maxWidth: '90vw',
-    display: 'flex',
-    flexDirection: 'column',
-    ...shorthands.padding('24px'),
-    ...shorthands.gap('16px'),
-  },
-  dialogHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    ...shorthands.gap('8px'),
-  },
-  dialogFooter: {
-    display: 'flex',
-    justifyContent: 'flex-end',
     ...shorthands.gap('8px'),
   },
 });
@@ -673,18 +651,20 @@ export function MainView({ onAddData }: MainViewProps) {
       </div>
 
       {/* Delete confirmation dialog */}
-      {deleteConfirmOpen && (
-        <div className={styles.dialogOverlay}>
-          <div className={styles.dialogBox}>
-            <div className={styles.dialogHeader}>
-              <Warning20Regular color={tokens.colorPaletteRedForeground1} />
-              <Text size={400} weight="semibold">Delete documents</Text>
-            </div>
-            <Text>
+      <Dialog open={deleteConfirmOpen} onOpenChange={(_, data) => { if (!data.open && !deleting) setDeleteConfirmOpen(false); }}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>
+              <div className={styles.deleteDialogHeader}>
+                <Warning20Regular color={tokens.colorPaletteRedForeground1} />
+                Delete documents
+              </div>
+            </DialogTitle>
+            <DialogContent>
               Are you sure you want to delete {selectedIds.size} document{selectedIds.size > 1 ? 's' : ''}?
               This will permanently remove them and any associated data (graphs, embeddings, timeseries).
-            </Text>
-            <div className={styles.dialogFooter}>
+            </DialogContent>
+            <DialogActions>
               <Button
                 appearance="secondary"
                 onClick={() => setDeleteConfirmOpen(false)}
@@ -701,10 +681,10 @@ export function MainView({ onAddData }: MainViewProps) {
               >
                 {deleting ? 'Deleting...' : 'Delete'}
               </Button>
-            </div>
-          </div>
-        </div>
-      )}
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
 
       <Toaster toasterId={toasterId} position="bottom-end" />
     </div>
