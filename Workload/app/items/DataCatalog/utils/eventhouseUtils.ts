@@ -1,6 +1,5 @@
 import { AccessToken, WorkloadClientAPI } from '@ms-fabric/workload-client';
 import { getEventhouseItem } from '../../../samples/views/SampleEventhouseExplorer/SampleEventhouseController';
-import { callAcquireFrontendAccessToken } from '../../../controller/AuthenticationController';
 
 // Re-export for convenience
 export { getEventhouseItem };
@@ -16,6 +15,56 @@ export interface KqlPreviewResult {
 }
 
 // -------------------------------------------------------------------------
+// Token acquisition — consent-aware, single-resource scope
+// -------------------------------------------------------------------------
+
+/**
+ * Detect whether an error is an Azure AD consent-required error.
+ * AADSTS65001: The user or administrator has not consented to use the application.
+ */
+function isConsentError(error: unknown): boolean {
+  if (!error) return false;
+  const msg = String((error as Record<string, unknown>)?.message ?? error);
+  return msg.includes('AADSTS65001') || msg.includes('consent_required');
+}
+
+/**
+ * Acquire a frontend access token for a Kusto cluster scope.
+ *
+ * If `acquireFrontendAccessToken` fails with a consent error
+ * (AADSTS65001), we first trigger consent via `acquireAccessToken` with
+ * `additionalScopesToConsent`, then retry the original call.  This lets
+ * the Fabric host pop its consent UI so the user can grant the workload
+ * access to the Kusto resource.
+ */
+async function acquireKustoToken(
+  workloadClient: WorkloadClientAPI,
+  scope: string,
+): Promise<AccessToken> {
+  const scopes = [scope];
+
+  try {
+    return await workloadClient.auth.acquireFrontendAccessToken({ scopes });
+  } catch (firstErr: unknown) {
+    if (!isConsentError(firstErr)) {
+      throw firstErr;
+    }
+
+    console.log('[eventhouseUtils] Consent required for Kusto scope — triggering consent flow');
+
+    // Trigger consent via acquireAccessToken. The returned token targets the
+    // workload's own audience, not Kusto, but the consent prompt covers the
+    // additionalScopesToConsent resources as well.
+    await workloadClient.auth.acquireAccessToken({
+      additionalScopesToConsent: scopes,
+    });
+
+    // Retry — consent should now be granted.
+    return await workloadClient.auth.acquireFrontendAccessToken({ scopes });
+  }
+}
+
+// -------------------------------------------------------------------------
 // KQL execution — single-resource scope to avoid AADSTS28000
 // -------------------------------------------------------------------------
 
@@ -26,6 +75,9 @@ export interface KqlPreviewResult {
  * `api.fabric.microsoft.com` AND the Kusto cluster (two resources in one
  * token request — rejected by Azure AD with AADSTS28000), this function
  * only requests a token scoped to the Kusto cluster.
+ *
+ * If consent has not been granted for the Kusto resource, it triggers the
+ * Fabric consent flow automatically (handles AADSTS65001).
  */
 async function executeKqlQuery(
   workloadClient: WorkloadClientAPI,
@@ -35,7 +87,7 @@ async function executeKqlQuery(
 ): Promise<object[] | null> {
   try {
     const scope = `${queryServiceUri}/.default`;
-    const accessToken: AccessToken = await callAcquireFrontendAccessToken(workloadClient, scope);
+    const accessToken: AccessToken = await acquireKustoToken(workloadClient, scope);
 
     const response = await fetch(`${queryServiceUri}/v1/rest/mgmt`, {
       method: 'POST',
