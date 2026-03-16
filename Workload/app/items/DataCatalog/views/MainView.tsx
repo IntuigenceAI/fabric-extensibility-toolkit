@@ -638,13 +638,15 @@ export function MainView({ onAddData }: MainViewProps) {
             <Text size={400} weight="semibold">No documents yet</Text>
             <Text>Add data to get started with your Knowledge Graph.</Text>
             <Tooltip
-              content="Document upload limit reached (Trial)"
+              content="Document upload limit reached (Trial). Upgrade to upload more."
               relationship="label"
               visible={isQuotaFull ? undefined : false}
             >
-              <Button appearance="primary" icon={<Add20Regular />} onClick={onAddData} disabled={isQuotaFull}>
-                Add Data
-              </Button>
+              <span>
+                <Button appearance="primary" icon={<Add20Regular />} onClick={onAddData} disabled={isQuotaFull}>
+                  Add Data
+                </Button>
+              </span>
             </Tooltip>
           </div>
         ) : (

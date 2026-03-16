@@ -85,14 +85,18 @@ export function useDocumentProcessing(
   apiClient: IntuigenceAPIClient | null,
   itemObjectId: string | undefined,
   onDocumentReady: (entry: CatalogDocumentEntry) => void,
+  onIngestComplete?: () => void,
 ): UseDocumentProcessingResult {
   const [activeFiles, setActiveFiles] = useState<ProcessingFile[]>([]);
   const pollTimers = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
 
-  // Use a ref for onDocumentReady so setInterval callbacks always call the
+  // Use refs for callbacks so setInterval/async callbacks always call the
   // latest version, avoiding stale closures that read outdated definitions.
   const onDocumentReadyRef = useRef(onDocumentReady);
   useEffect(() => { onDocumentReadyRef.current = onDocumentReady; }, [onDocumentReady]);
+
+  const onIngestCompleteRef = useRef(onIngestComplete);
+  useEffect(() => { onIngestCompleteRef.current = onIngestComplete; }, [onIngestComplete]);
 
   // Clear all poll timers and reset state when switching items or on unmount.
   useEffect(() => {
@@ -262,6 +266,8 @@ export function useDocumentProcessing(
             updateFile(localId, { status: 'failed', error: result.error || 'Server rejected file' });
           }
         }
+        // Refresh quota after successful ingest (records now exist in DB)
+        onIngestCompleteRef.current?.();
       } catch (err: any) {
         console.error('[useDocumentProcessing] OneLake ingest error:', err);
         const errMsg = err.message || 'Ingestion failed';
@@ -273,6 +279,8 @@ export function useDocumentProcessing(
         for (const { localId } of localEntries) {
           updateFile(localId, { status: 'failed', error: displayError });
         }
+        // Refresh quota even on error (quota may have changed)
+        onIngestCompleteRef.current?.();
       }
     })();
   }, [apiClient, updateFile, startPolling]);
