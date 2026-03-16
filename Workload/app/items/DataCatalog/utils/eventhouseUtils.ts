@@ -107,7 +107,6 @@ export async function getTableRowCount(
     queryServiceUri,
     databaseName,
     `['${escapeKqlIdentifier(tableName)}'] | count`,
-    () => {},
   );
   if (!result) return 0;
 
@@ -132,7 +131,6 @@ export async function queryTableData(
     queryServiceUri,
     databaseName,
     `['${escapeKqlIdentifier(tableName)}']`,
-    () => {},
   );
 }
 
@@ -151,7 +149,6 @@ export async function queryTablePreview(
     queryServiceUri,
     databaseName,
     `['${escapeKqlIdentifier(tableName)}'] | take ${limit}`,
-    () => {},
   );
 }
 
