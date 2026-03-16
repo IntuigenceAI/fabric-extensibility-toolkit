@@ -1,5 +1,6 @@
-import { WorkloadClientAPI } from '@ms-fabric/workload-client';
-import { getEventhouseItem, executeQuery } from '../../../samples/views/SampleEventhouseExplorer/SampleEventhouseController';
+import { AccessToken, WorkloadClientAPI } from '@ms-fabric/workload-client';
+import { getEventhouseItem } from '../../../samples/views/SampleEventhouseExplorer/SampleEventhouseController';
+import { callAcquireFrontendAccessToken } from '../../../controller/AuthenticationController';
 
 // Re-export for convenience
 export { getEventhouseItem };
@@ -15,6 +16,50 @@ export interface KqlPreviewResult {
 }
 
 // -------------------------------------------------------------------------
+// KQL execution — single-resource scope to avoid AADSTS28000
+// -------------------------------------------------------------------------
+
+/**
+ * Execute a KQL query against an EventHouse cluster.
+ *
+ * Unlike the sample `executeQuery` which requests tokens for both
+ * `api.fabric.microsoft.com` AND the Kusto cluster (two resources in one
+ * token request — rejected by Azure AD with AADSTS28000), this function
+ * only requests a token scoped to the Kusto cluster.
+ */
+async function executeKqlQuery(
+  workloadClient: WorkloadClientAPI,
+  queryServiceUri: string,
+  databaseName: string,
+  query: string,
+): Promise<object[] | null> {
+  try {
+    const scope = `${queryServiceUri}/.default`;
+    const accessToken: AccessToken = await callAcquireFrontendAccessToken(workloadClient, scope);
+
+    const response = await fetch(`${queryServiceUri}/v1/rest/mgmt`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken.token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ db: databaseName, csl: query }),
+    });
+
+    if (!response.ok) {
+      const errorMessage = await response.text();
+      console.error(`[eventhouseUtils] KQL query failed: ${errorMessage}`);
+      return null;
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('[eventhouseUtils] KQL query error:', error);
+    return null;
+  }
+}
+
+// -------------------------------------------------------------------------
 // KQL query helpers
 // -------------------------------------------------------------------------
 
@@ -26,12 +71,11 @@ export async function getTableList(
   queryServiceUri: string,
   databaseName: string,
 ): Promise<TableInfo[]> {
-  const result = await executeQuery(
+  const result = await executeKqlQuery(
     workloadClient,
     queryServiceUri,
     databaseName,
     '.show tables',
-    () => {}, // no-op setClientRequestId
   );
   if (!result) return [];
 
@@ -58,7 +102,7 @@ export async function getTableRowCount(
   databaseName: string,
   tableName: string,
 ): Promise<number> {
-  const result = await executeQuery(
+  const result = await executeKqlQuery(
     workloadClient,
     queryServiceUri,
     databaseName,
@@ -83,7 +127,7 @@ export async function queryTableData(
   databaseName: string,
   tableName: string,
 ): Promise<object[]> {
-  return executeQuery(
+  return executeKqlQuery(
     workloadClient,
     queryServiceUri,
     databaseName,
@@ -102,7 +146,7 @@ export async function queryTablePreview(
   tableName: string,
   limit = 10,
 ): Promise<object[]> {
-  return executeQuery(
+  return executeKqlQuery(
     workloadClient,
     queryServiceUri,
     databaseName,
