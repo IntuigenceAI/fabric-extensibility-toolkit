@@ -67,6 +67,8 @@ export function useDataCatalog(
       setQuota(q);
     } catch (err) {
       console.error('[useDataCatalog] Failed to fetch quota:', err);
+      // Fail-closed: treat unknown quota as full to prevent uploads when quota status is unknown
+      setQuota({ used: 0, limit: 0, remaining: 0 });
     }
   }, [apiClient]);
 
