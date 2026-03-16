@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workload Attestation Document – IntuigenceAI</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fff;
+  }
+
+  /* ── Top bar ── */
+  .topbar {
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 16px 40px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .topbar .brand {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1a1a1a;
+    text-decoration: none;
+  }
+  .topbar .brand span { color: #0f6cbd; }
+
+  /* ── Page layout ── */
+  .page {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 40px 80px;
+  }
+
+  /* ── Hero ── */
+  .hero { margin-bottom: 40px; }
+  .hero h1 {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-bottom: 10px;
+    color: #111;
+  }
+  .hero .tagline {
+    font-size: 15px;
+    color: #555;
+    margin-bottom: 18px;
+  }
+  .hero .intro-box {
+    background: #f0f6ff;
+    border-left: 4px solid #0f6cbd;
+    padding: 16px 20px;
+    font-size: 15px;
+    color: #1a1a1a;
+    border-radius: 0 6px 6px 0;
+  }
+  .hero .intro-box strong { color: #0f6cbd; }
+
+  /* ── Headings ── */
+  h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111;
+    margin: 40px 0 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e5e7eb;
+  }
+  h3 {
+    font-size: 17px;
+    font-weight: 700;
+    color: #111;
+    margin: 32px 0 10px;
+  }
+  h5 {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: #555;
+    margin: 28px 0 8px;
+  }
+
+  /* ── Requirement blocks ── */
+  .req { margin-bottom: 28px; }
+  .req-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #111;
+    margin-bottom: 6px;
+  }
+  .req-desc {
+    font-size: 14.5px;
+    color: #444;
+    margin-bottom: 10px;
+    font-style: italic;
+  }
+  .req-body { font-size: 15px; color: #222; }
+  .req-body p { margin-bottom: 8px; }
+
+  /* ── Checkboxes ── */
+  .checks { list-style: none; margin: 8px 0 10px; }
+  .checks li {
+    font-size: 15px;
+    padding: 2px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .checks li .cb {
+    display: inline-block;
+    font-family: monospace;
+    font-size: 14px;
+    min-width: 24px;
+    color: #111;
+    margin-top: 2px;
+  }
+  .checks li.checked .cb { font-weight: 700; }
+  .checks li.unchecked { color: #777; }
+
+  /* ── Note ── */
+  .note {
+    background: #fafafa;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 14px;
+    color: #333;
+    margin-top: 10px;
+  }
+  .note::before {
+    content: 'Note: ';
+    font-weight: 700;
+    color: #555;
+  }
+
+  /* ── Tables ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14.5px;
+    margin: 12px 0 16px;
+  }
+  th {
+    background: #f5f5f5;
+    font-weight: 700;
+    text-align: left;
+    padding: 9px 14px;
+    border: 1px solid #ddd;
+    color: #333;
+  }
+  td {
+    padding: 9px 14px;
+    border: 1px solid #ddd;
+    color: #222;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: #fafafa; }
+
+  /* ── Bullet lists ── */
+  ul.plain {
+    padding-left: 20px;
+    margin: 8px 0;
+  }
+  ul.plain li { font-size: 15px; margin: 3px 0; color: #222; }
+
+  /* ── Divider ── */
+  hr { border: none; border-top: 1px solid #e5e7eb; margin: 36px 0; }
+
+  /* ── Section pill ── */
+  .section-pill {
+    display: inline-block;
+    background: #0f6cbd;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .7px;
+    text-transform: uppercase;
+    padding: 2px 10px;
+    border-radius: 20px;
+    margin-bottom: 6px;
+  }
+
+  /* ── Footer ── */
+  footer {
+    border-top: 1px solid #e5e7eb;
+    padding: 28px 40px;
+    font-size: 13px;
+    color: #888;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+  footer a { color: #0f6cbd; text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  a { color: #0f6cbd; }
+  a:hover { text-decoration: underline; }
+
+  @media (max-width: 600px) {
+    .page { padding: 28px 20px 60px; }
+    .topbar { padding: 14px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <span class="brand">Intuigence<span>AI</span></span>
+</div>
+
+<div class="page">
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>Microsoft Fabric Vendor (ISV) Attestation Documentation</h1>
+    <p class="tagline">Workload Attestation Document for the IntuigenceAI Industrial Workers workload in Microsoft Fabric.</p>
+    <div class="intro-box">
+      <strong>This document provides details on how our IntuigenceAI Industrial Workers workload complies with the requirements for publishing in the Microsoft Fabric Workload Hub.</strong> The information outlined here will be kept up-to-date and linked in the Workload metadata manifest.
+    </div>
+  </div>
+
+  <!-- SECTION I -->
+  <div class="section-pill">Section I</div>
+  <h2>ISV Information</h2>
+  <p>The IntuigenceAI Industrial Workers workload is developed and maintained by IntuigenceAI.</p>
+
+  <table>
+    <tbody>
+      <tr><td><strong>Company Name</strong></td><td>IntuigenceAI</td></tr>
+      <tr><td><strong>Company Website</strong></td><td><a href="https://www.intuigence.ai/" target="_blank">https://www.intuigence.ai/</a></td></tr>
+      <tr><td><strong>Address</strong></td><td>24564 Hawthorne Blvd Ste 205, Torrance CA 90505</td></tr>
+      <tr><td><strong>Phone</strong></td><td>310-498-3217</td></tr>
+      <tr><td><strong>Primary Contact</strong></td><td>Abdurrahman Balsus</td></tr>
+      <tr><td><strong>Title</strong></td><td>Security &amp; Compliance</td></tr>
+      <tr><td><strong>Email</strong></td><td><a href="mailto:Abdurrahman.Balsus@Intuigence.ai">Abdurrahman.Balsus@Intuigence.ai</a></td></tr>
+    </tbody>
+  </table>
+
+  <!-- SECTION II -->
+  <div class="section-pill">Section II</div>
+  <h2>Attestation Declaration</h2>
+  <p><strong>To:</strong> Microsoft Corporation</p>
+  <p style="margin-top:8px;"><strong>Subject:</strong> Vendor Self-Attestation for Compliance with Microsoft Workload Development Requirements</p>
+  <p style="margin-top:12px;">IntuigenceAI, the vendor of the IntuigenceAI Industrial Workers workload, confirms that the requirements in Section III have been reviewed. We attest that the workload meets and complies with all listed requirements as outlined in the Microsoft Extensibility toolkit documentation, specifically the Publish Workload Requirements.</p>
+
+  <!-- SECTION III -->
+  <div class="section-pill">Section III</div>
+  <h2>Publish Workload Requirements Attestation Checklist</h2>
+  <p>We, the vendor, IntuigenceAI, confirm and attest to reviewing, meeting and complying with the requirements outlined in the Microsoft Fabric Workload Development Kit (WDK), specifically the Publish Workload Requirements.</p>
+  <p style="margin-top:8px;">The following sections document details, exceptions, or variances regarding the attestation of adherence to the Publish Workload Requirements.</p>
+
+  <h5>Workload Information</h5>
+  <table>
+    <tbody>
+      <tr><td><strong>Workload Name</strong></td><td>IntuigenceAI Industrial Workers</td></tr>
+      <tr><td><strong>Workload Version</strong></td><td>1.0.0</td></tr>
+      <tr><td><strong>Release Date</strong></td><td>March 19, 2026</td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- BUSINESS REQUIREMENTS -->
+  <h2>Business Requirements</h2>
+
+  <div class="req">
+    <div class="req-title">1. Value to Customers</div>
+    <div class="req-body">
+      <p>The workload provides the following value to customers:</p>
+      <p>IntuigenceAI brings AI-powered Synthetic Engineers to Microsoft Fabric, enabling industrial teams to analyze P&amp;IDs, query plant data, and get expert insights.</p>
+      <ul class="plain">
+        <li>Chat with <strong>PAM</strong>, your Plant AI Manager, for instant answers</li>
+        <li>Analyze P&amp;ID diagrams and equipment connections</li>
+        <li>Query real-time telemetry from Eventhouse</li>
+        <li>Get grounded responses with source citations</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="req">
+    <div class="req-title">2. Trial</div>
+    <div class="req-desc">A trial is available to the customer without waiting time (less than 5 seconds), providing a free and easy way to explore the workload for a limited time in accordance with Microsoft guidelines for Trials.</div>
+    <ul class="checks">
+      <li class="unchecked"><span class="cb">[ ]</span> Yes</li>
+      <li class="checked"><span class="cb">[x]</span> No</li>
+    </ul>
+    <div class="note">A trial experience is not currently supported for this workload.</div>
+  </div>
+
+  <div class="req">
+    <div class="req-title">3. Monetization</div>
+    <div class="req-desc">The workload is available on the marketplace for the customer to procure with or without a trial in accordance with the monetization guidelines.</div>
+    <ul class="checks">
+      <li class="unchecked"><span class="cb">[ ]</span> Yes</li>
+      <li class="checked"><span class="cb">[x]</span> No</li>
+    </ul>
+    <div class="note">The workload is not currently listed on the marketplace. Monetization is based on direct enterprise contracts with IntuigenceAI. Billing is handled outside of Fabric.</div>
+  </div>
+
+  <hr>
+
+  <!-- TECHNICAL REQUIREMENTS -->
+  <h2>Technical Requirements</h2>
+
+  <div class="req">
+    <div class="req-title">1. Microsoft Entra Access</div>
+    <div class="req-desc">The workloads use Microsoft Entra authentication and authorization.</div>
+    <ul class="checks">
+      <li class="checked"><span class="cb">[x]</span> No other authentication and authorization mechanisms are used</li>
+      <li class="unchecked"><span class="cb">[ ]</span> Different authentication and authorization mechanisms are used for stored data in Fabric</li>
+    </ul>
+    <div class="note">Tenant ID: 9346c79d-a7d7-4151-a6ff-519e7e681d4e</div>
+  </div>
+
+  <div class="req">
+    <div class="req-title">2. OneLake</div>
+    <div class="req-desc">Workloads integrate with OneLake to store data in the standard formats supported by the Fabric platform so that other services can take advantage of it.</div>
+    <ul class="checks">
+      <li class="unchecked"><span class="cb">[ ]</span> All data and metadata is stored in OneLake or Fabric Data Stores</li>
+      <li class="checked"><span class="cb">[x]</span> Not all data and metadata is stored in OneLake or Fabric Data Stores</li>
+    </ul>
+    <div class="note">Although the workload is compatible with OneLake, customer data and metadata are primarily stored in IntuigenceAI‑managed Azure resources in the us‑west2 region, including object storage, Neo4j, and Postgres. When configured by the customer, certain data may also be stored in the customer's own Fabric/tenant environment (e.g., data products or items created by the workload in their workspace).</div>
+  </div>
+
+  <div class="req">
+    <div class="req-title">3. Microsoft Entra Conditional Access</div>
+    <div class="req-desc">Enterprise customers require centralized control and management of the identities and credentials used to access their resources and data via Microsoft Entra to further secure their environment via conditional access.</div>
+    <ul class="checks">
+      <li class="checked"><span class="cb">[x]</span> The service works in its entirety even if customers enable this functionality</li>
+      <li class="unchecked"><span class="cb">[ ]</span> The service works with limitations if customers enable this functionality</li>
+      <li class="unchecked"><span class="cb">[ ]</span> The service does not work with Microsoft Entra Conditional Access</li>
+    </ul>
+  </div>
+
+  <div class="req">
+    <div class="req-title">4. Admin REST API</div>
+    <div class="req-desc">Admin REST APIs are an integral part of Fabric admin and governance process. Basic functionality is supported as part of the Workload Development Kit and doesn't need any work from Partners.</div>
+    <ul class="checks">
+      <li class="unchecked"><span class="cb">[ ]</span> Microsoft Fabric Admin APIs are being leveraged (/admin/*)</li>
+      <li class="checked"><span class="cb">[x]</span> No Microsoft Fabric Admin APIs are being used</li>
+    </ul>
+  </div>
+
+  <div class="req">
+    <div class="req-title">5. Customer Facing Monitoring &amp; Diagnostics</div>
+    <div class="req-desc">Health and telemetry data needs to be stored for a minimum of 30 days including activity ID for customer support purposes, including Trials.</div>
+    <ul class="checks">
+      <li class="checked"><span class="cb">[x]</span> Minimum 30 days requirement is adhered to</li>
+    </ul>
+  </div>
+
+  <div class="req">
+    <div class="req-title">6. B2B</div>
+    <div class="req-desc">The implementation of the workload is in line with Microsoft Fabric's sharing strategy focused on allowing customers to collaborate with their business partners, customers, vendors, subsidiaries, etc.</div>
+    <ul class="checks">
+      <li class="unchecked"><span class="cb">[ ]</span> Cross tenant B2B collaboration supported</li>
+      <li class="checked"><span class="cb">[x]</span> Workload Item Access only within the tenant</li>
+    </ul>
+    <div class="note">Workload item access is currently only supported within the customer's tenant.</div>
+  </div>
+
+  <div class="req">
+    <div class="req-title">7. Business Continuity and Disaster Recovery</div>
+    <div class="req-body">
+      <p>The vendor has a comprehensive Business Continuity and Disaster Recovery (BCDR) plan designed to tackle unplanned disasters and recovery steps.</p>
+      <p>IntuigenceAI maintains documented Business Continuity and Disaster Recovery procedures as part of its security and compliance program. These procedures define recovery objectives, incident response processes, and operational continuity controls.</p>
+    </div>
+  </div>
+
+  <div class="req">
+    <div class="req-title">8. Performance</div>
+    <div class="req-desc">The Workload implementation takes measures to test and track performance of their Items.</div>
+    <ul class="checks">
+      <li class="unchecked"><span class="cb">[ ]</span> Performance Metrics on workload performance are available via the monitoring hub</li>
+      <li class="unchecked"><span class="cb">[ ]</span> Workload additionally includes a separate monitoring UI to test and track performance</li>
+      <li class="checked"><span class="cb">[x]</span> Performance tracking is not currently available to the end user; however, vendor support personnel can monitor, test, and track performance via their internal instrumentation and monitoring systems</li>
+    </ul>
+  </div>
+
+  <div class="req">
+    <div class="req-title">9. Presence</div>
+    <div class="req-desc">To ensure that customer expectations independent of their home or capacity region are met, vendors need to align with Fabric regions and clouds.</div>
+    <ul class="checks">
+      <li class="checked"><span class="cb">[x]</span> Service availability and colocation/alignment in the following Fabric regions</li>
+      <li class="unchecked"><span class="cb">[ ]</span> All or part of the service does not reside in Azure</li>
+    </ul>
+    <div class="note">All runtime components for the Microsoft Fabric workload run in IntuigenceAI‑managed Microsoft Azure resources in the us‑west2 region. No components of the Fabric workload run in other public clouds or on‑premises.</div>
+  </div>
+
+  <div class="req">
+    <div class="req-title">10. Public APIs</div>
+    <div class="req-desc">Fabric Public APIs are the backbone of automation, enabling seamless communication and integration for both customers and partners within the Fabric ecosystem.</div>
+    <ul class="checks">
+      <li class="checked"><span class="cb">[x]</span> The workload uses Fabric Public APIs</li>
+    </ul>
+  </div>
+
+  <hr>
+
+  <!-- DESIGN / UX REQUIREMENTS -->
+  <h2>Design / UX Requirements</h2>
+
+  <div class="req">
+    <div class="req-title">1. Common UX</div>
+    <div class="req-desc">The workload and all item types comply with the Fabric UX guidelines.</div>
+    <ul class="checks">
+      <li class="checked"><span class="cb">[x]</span> The following variance and/or exceptions have been requested from Microsoft</li>
+    </ul>
+    <div class="note">A UX variance from Microsoft has been requested for navigation/layout. This section will be updated once approval is formally granted.</div>
+  </div>
+
+  <div class="req">
+    <div class="req-title">2. Item Creation Experience</div>
+    <div class="req-desc">The item creation experience is in accordance with the Fabric UX System.</div>
+    <ul class="checks">
+      <li class="checked"><span class="cb">[x]</span> Yes</li>
+      <li class="unchecked"><span class="cb">[ ]</span> No</li>
+    </ul>
+  </div>
+
+  <div class="req">
+    <div class="req-title">3. Monitoring Hub</div>
+    <div class="req-desc">All long running operations need to integrate with Fabric Monitoring Hub.</div>
+    <ul class="checks">
+      <li class="unchecked"><span class="cb">[ ]</span> Yes</li>
+      <li class="checked"><span class="cb">[x]</span> No</li>
+    </ul>
+    <div class="note">Monitoring Hub integration is not currently supported.</div>
+  </div>
+
+  <div class="req">
+    <div class="req-title">4. Trial Experience</div>
+    <div class="req-desc">The workload provides a Trial Experience for users as outlined in the design guidelines.</div>
+    <ul class="checks">
+      <li class="unchecked"><span class="cb">[ ]</span> Trial Supported</li>
+      <li class="checked"><span class="cb">[x]</span> Trial Not Supported</li>
+    </ul>
+  </div>
+
+  <div class="req">
+    <div class="req-title">5. Monetization Experience</div>
+    <div class="req-desc">The monetization experience is in line with the design guidelines provided.</div>
+    <ul class="checks">
+      <li class="unchecked"><span class="cb">[ ]</span> The monetization experience is completely integrated with the marketplace and compliant with the guidelines</li>
+      <li class="unchecked"><span class="cb">[ ]</span> Bring Your Own License (BYOL)</li>
+      <li class="unchecked"><span class="cb">[ ]</span> Free / Freemium</li>
+      <li class="checked"><span class="cb">[x]</span> Other</li>
+    </ul>
+    <div class="note">Monetization is based on direct enterprise contracts with IntuigenceAI (no in‑product purchase or marketplace offer yet). Billing is handled outside of Fabric.</div>
+  </div>
+
+  <div class="req">
+    <div class="req-title">6. Accessibility</div>
+    <div class="req-desc">The user experience is in compliance with the Fabric UX design guidelines for Accessibility.</div>
+    <ul class="checks">
+      <li class="unchecked"><span class="cb">[ ]</span> The user experience is completely compliant with the guidelines</li>
+      <li class="checked"><span class="cb">[x]</span> The following limitations exist</li>
+    </ul>
+    <div class="note">The workload follows general accessibility best practices (semantic HTML, basic keyboard navigation), but a full review against Fabric Accessibility guidelines is not yet complete. Known limitations may include incomplete screen reader labels and partial keyboard focus management in some custom panels.</div>
+  </div>
+
+  <div class="req">
+    <div class="req-title">7. World Readiness / Internationalization</div>
+    <div class="req-desc">English is supported as the default language. Localization, though optional, should be considered.</div>
+    <ul class="checks">
+      <li class="checked"><span class="cb">[x]</span> English is the only supported language</li>
+      <li class="unchecked"><span class="cb">[ ]</span> The following additional languages are supported</li>
+    </ul>
+  </div>
+
+  <div class="req">
+    <div class="req-title">8. Item Settings</div>
+    <div class="req-desc">Item settings are implemented as a part of the ribbon as outlined in the UX guidelines.</div>
+    <ul class="checks">
+      <li class="unchecked"><span class="cb">[ ]</span> Yes</li>
+      <li class="checked"><span class="cb">[x]</span> No</li>
+    </ul>
+    <div class="note">Item‑level settings are not yet implemented in the Fabric ribbon; configuration is handled via workload defaults and external configuration.</div>
+  </div>
+
+  <div class="req">
+    <div class="req-title">9. Samples</div>
+    <div class="req-desc">Samples are optionally provided that preconfigure items of their type to help customers get started more easily.</div>
+    <ul class="checks">
+      <li class="unchecked"><span class="cb">[ ]</span> Samples not provided</li>
+      <li class="checked"><span class="cb">[x]</span> Samples for pre-configuration of items provided</li>
+    </ul>
+    <div class="note">Sample configurations are provided for common industrial use cases (e.g., a sample P&amp;ID analysis workspace) to help customers get started quickly.</div>
+  </div>
+
+  <div class="req">
+    <div class="req-title">10. Custom Actions</div>
+    <div class="req-desc">Custom actions can be optionally provided as a part of the item editor.</div>
+    <ul class="checks">
+      <li class="unchecked"><span class="cb">[ ]</span> Custom Actions are not implemented</li>
+      <li class="checked"><span class="cb">[x]</span> Custom Actions implemented as part of Workload</li>
+    </ul>
+    <div class="note">Custom Actions implemented include: "Add Data" in the Data Catalog Item, and "Add Files" in the Intuigence Board Item.</div>
+  </div>
+
+  <div class="req">
+    <div class="req-title">11. Workspace Settings</div>
+    <div class="req-desc">Workspace settings provide a way that workloads can be configured on a workspace level.</div>
+    <ul class="checks">
+      <li class="unchecked"><span class="cb">[ ]</span> Supported</li>
+      <li class="checked"><span class="cb">[x]</span> Not Supported</li>
+    </ul>
+  </div>
+
+  <div class="req">
+    <div class="req-title">12. Global Search</div>
+    <div class="req-desc">Searching for items in Fabric is supported through the top search bar.</div>
+    <ul class="checks">
+      <li class="unchecked"><span class="cb">[ ]</span> Supported</li>
+      <li class="checked"><span class="cb">[x]</span> Not Supported</li>
+    </ul>
+    <div class="note">Global Search functionality is currently in development.</div>
+  </div>
+
+  <hr>
+
+  <!-- SECURITY / COMPLIANCE -->
+  <h2>Security / Compliance Requirements</h2>
+
+  <div class="req">
+    <div class="req-title">1. Security General</div>
+    <div class="req-body">
+      <p>Protection of customer data and metadata is of paramount importance. Workloads must go through a security review and assessment. Vendor attests that the security review and assessment was completed and will be periodically performed as enhancements and changes are made.</p>
+      <p>IntuigenceAI maintains a formal security program including SOC 2 Type I compliance. Security reviews are conducted as part of the company's security governance processes. Controls include:</p>
+      <ul class="plain">
+        <li>Encryption in transit (TLS 1.2+)</li>
+        <li>Encryption at rest (AES-256)</li>
+        <li>Role-based access control</li>
+        <li>Continuous monitoring of infrastructure and application environments</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="req">
+    <div class="req-title">2. Privacy</div>
+    <div class="req-body">
+      <p>Partners that build workloads also have a responsibility to protect that data when they access it. Every workload goes through a privacy assessment and a privacy review. Vendor attests that privacy review was completed and is periodically performed as enhancements and changes are made.</p>
+      <p style="margin-top:10px;"><strong>Extra Requirements:</strong></p>
+    </div>
+    <ul class="checks">
+      <li class="checked"><span class="cb">[x]</span> Publisher attests that only essential HTTP-only cookies are used by the Workload and only after positively authenticating the user</li>
+      <li class="checked"><span class="cb">[x]</span> Publisher attests that it is not using or relying on third-party cookies as part of their solution</li>
+      <li class="checked"><span class="cb">[x]</span> Publisher attests to obtaining any Microsoft Entra token using the JavaScript APIs provided by the Fabric Workload Client SDK</li>
+    </ul>
+    <div class="note">IntuigenceAI performs privacy reviews as part of its secure SDLC and SOC 2 Type I compliance program. Privacy impact is assessed during design and before release of material changes. Customer data handling is governed by the <a href="https://intuigence.ai/privacy" target="_blank">IntuigenceAI Privacy Policy</a> and Data Processing Agreement, including limitations on data retention, access, and use. For the Microsoft Fabric workload, IntuigenceAI relies on identity provided by Microsoft Entra and does not persist the user's name, email address, or phone number within the workload.</div>
+  </div>
+
+  <div class="req">
+    <div class="req-title">3. Data Residency</div>
+    <div class="req-body">
+      <p>Microsoft Fabric is making an Enterprise Promise around data not leaving the geography of the tenant for stored data and data in transit. As a workload in Fabric, customers need to be aware of your commitments to Data Residency.</p>
+    </div>
+    <div class="note">IntuigenceAI stores and processes customer content data in IntuigenceAI‑managed Azure resources in the us‑west2 region and, where configured, in the customer's own Fabric tenant environment. Customer content may therefore leave the tenant's geography depending on the customer's region and configuration. Operational telemetry and logs may be processed in additional regions but do not include customer content. For details, see <a href="https://intuigence.ai/privacy" target="_blank">https://intuigence.ai/privacy</a>.</div>
+  </div>
+
+  <div class="req">
+    <div class="req-title">4. Compliance</div>
+    <div class="req-body">
+      <p>The publisher attests to the following security, data, and compliance regulations and standards.</p>
+      <p>IntuigenceAI maintains SOC 2 Type I compliance and operates under a formal security and compliance program. Security controls include:</p>
+      <ul class="plain">
+        <li>Encryption of data at rest and in transit</li>
+        <li>Role-based access control</li>
+        <li>Secure cloud infrastructure management</li>
+        <li>Continuous monitoring of systems</li>
+      </ul>
+      <p style="margin-top:8px;">Security controls are documented and tracked through the company's governance, risk, and compliance platform.</p>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- SUPPORT -->
+  <h2>Support</h2>
+
+  <div class="req">
+    <div class="req-title">1. Live Site</div>
+    <div class="req-desc">Partner workloads are an integral part of Fabric that require the Microsoft support teams to be aware of how to contact you in case customers are reaching out directly.</div>
+    <p style="margin-bottom:8px;font-size:15px;">Microsoft direct vendor outreach:</p>
+    <table>
+      <tbody>
+        <tr><td><strong>Contact Name / Team</strong></td><td>IntuigenceAI Security &amp; Engineering Team</td></tr>
+        <tr><td><strong>Email alias</strong></td><td><a href="mailto:security@intuigence.ai">security@intuigence.ai</a></td></tr>
+        <tr><td><strong>Self Service portal</strong></td><td><a href="https://intuigence.ai/" target="_blank">https://intuigence.ai/</a></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="req">
+    <div class="req-title">2. Supportability</div>
+    <div class="req-desc">Vendors are responsible for defining and documenting their support parameters (SLA, contact methods, etc.). This information needs to be linked from the Workload page and should always be accessible to customers.</div>
+    <ul class="checks">
+      <li class="unchecked"><span class="cb">[ ]</span> Vendor attests that support information is published to the marketplace offering and available to users/customers directly via the workload</li>
+    </ul>
+    <div class="note">Support information is available via <a href="https://intuigence.ai" target="_blank">https://intuigence.ai</a> and directly within the workload's help/support links. It will be added to the Marketplace listing once published.</div>
+  </div>
+
+  <div class="req">
+    <div class="req-title">3. Service Health and Availability</div>
+    <div class="req-desc">Vendors need to host a service health dashboard that shows their service health and availability to customers.</div>
+    <div class="note">IntuigenceAI does not yet expose a public service health dashboard for this workload. Internal monitoring and alerting are in place, and service incidents are communicated to affected customers via support channels. A public service health and availability page is planned and will be linked here once available.</div>
+  </div>
+
+  <hr>
+
+  <!-- FABRIC FEATURES -->
+  <h2>Fabric Features</h2>
+
+  <div class="req">
+    <div class="req-title">1. Application Life Cycle Management (ALM)</div>
+    <div class="req-desc">Microsoft Fabric's lifecycle management tools enable efficient product development, continuous updates, fast releases, and ongoing feature enhancements.</div>
+    <ul class="checks">
+      <li class="unchecked"><span class="cb">[ ]</span> Supported</li>
+      <li class="checked"><span class="cb">[x]</span> Not Supported</li>
+    </ul>
+  </div>
+
+  <div class="req">
+    <div class="req-title">2. CI/CD</div>
+    <div class="req-desc">The workload supports CI/CD pipelines to enable automated deployment and integration workflows within Microsoft Fabric.</div>
+    <ul class="checks">
+      <li class="unchecked"><span class="cb">[ ]</span> CI/CD is supported via the Fabric CICD manifest section</li>
+      <li class="checked"><span class="cb">[x]</span> CI/CD is not supported</li>
+    </ul>
+  </div>
+
+  <div class="req">
+    <div class="req-title">3. Item Definition Portability</div>
+    <div class="req-desc">Items can be exported with their full definition and restored in other workspaces, enabling lifecycle management and cross-workspace deployment.</div>
+    <ul class="checks">
+      <li class="unchecked"><span class="cb">[ ]</span> Items can be restored with their definition in other workspaces</li>
+      <li class="checked"><span class="cb">[x]</span> Items cannot be restored in other workspaces</li>
+    </ul>
+  </div>
+
+  <div class="req">
+    <div class="req-title">4. Private Links</div>
+    <div class="req-desc">In Fabric, you can configure and use an endpoint that allows your organization to access Fabric privately.</div>
+    <ul class="checks">
+      <li class="unchecked"><span class="cb">[ ]</span> Supported</li>
+      <li class="checked"><span class="cb">[x]</span> Not Supported</li>
+    </ul>
+  </div>
+
+  <div class="req">
+    <div class="req-title">5. Data Hub</div>
+    <div class="req-desc">The OneLake data hub makes it easy to find, explore, and use the Fabric data items in your organization that you have access to.</div>
+    <ul class="checks">
+      <li class="unchecked"><span class="cb">[ ]</span> Supported</li>
+      <li class="checked"><span class="cb">[x]</span> Not Supported</li>
+    </ul>
+  </div>
+
+  <div class="req">
+    <div class="req-title">6. Data Lineage</div>
+    <div class="req-desc">Understanding the flow of data from the data source to its destination. Questions like "What happens if I change this data?" or "Why isn't this report up to date?" can be hard to answer without lineage.</div>
+    <ul class="checks">
+      <li class="unchecked"><span class="cb">[ ]</span> Supported</li>
+      <li class="checked"><span class="cb">[x]</span> Not Supported</li>
+    </ul>
+  </div>
+
+  <div class="req">
+    <div class="req-title">7. Sensitivity Labels</div>
+    <div class="req-desc">Sensitivity labels from Microsoft Purview Information Protection on items can guard your sensitive content against unauthorized data access and leakage. <em>Extra requirements: For partners using Export functionality within their Item they need to follow the guidelines.</em></div>
+    <ul class="checks">
+      <li class="unchecked"><span class="cb">[ ]</span> Supported</li>
+      <li class="checked"><span class="cb">[x]</span> Not Supported</li>
+    </ul>
+  </div>
+
+  <hr>
+
+  <!-- ADDITIONAL NOTES -->
+  <h2>Additional Notes</h2>
+  <p>IntuigenceAI maintains SOC 2 Type I compliance and operates under a formal security and compliance program. Additional information regarding security, privacy, and compliance practices can be provided upon request.</p>
+
+  <h3>References</h3>
+  <ul class="plain">
+    <li><a href="https://www.intuigence.ai/" target="_blank">Company Website: https://www.intuigence.ai/</a></li>
+    <li><a href="https://intuigence.ai/privacy" target="_blank">Privacy Policy: https://intuigence.ai/privacy</a></li>
+    <li>Support Portal: <a href="https://intuigence.ai/" target="_blank">https://intuigence.ai/</a></li>
+    <li>Security Contact: <a href="mailto:security@intuigence.ai">security@intuigence.ai</a></li>
+    <li>Compliance Contact: <a href="mailto:Abdurrahman.Balsus@Intuigence.ai">Abdurrahman.Balsus@Intuigence.ai</a></li>
+    <li>Service Health Dashboard: Planned — link to be added upon availability</li>
+    <li>Marketplace Listing: Planned — link to be added upon publication</li>
+  </ul>
+
+  <p style="margin-top:28px;font-size:14px;color:#666;">
+    <strong>Document Version:</strong> 1.0.0 &nbsp;|&nbsp; <strong>Release Date:</strong> March 19, 2026
+  </p>
+
+</div>
+
+<footer>
+  <p>&copy; 2026 IntuigenceAI &nbsp;·&nbsp; <a href="https://intuigence.ai/privacy" target="_blank">Privacy Policy</a> &nbsp;·&nbsp; <a href="mailto:security@intuigence.ai">security@intuigence.ai</a></p>
+</footer>
+
+</body>
+</html>
