@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>IntuigenceAI Industrial Workers – Documentation</title>
+<style>
+  :root{--brand:#00897b;--brand-light:#e0f2f1;--brand-dark:#00695c;--text:#1a1a2e;--muted:#555;--border:#e0e0e0;--bg:#fafafa;--code-bg:#f4f4f4;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',system-ui,sans-serif;color:var(--text);background:#fff;line-height:1.7;font-size:15px;}
+
+  header{background:var(--brand);color:#fff;padding:0 2rem;}
+  .header-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:60px;}
+  .logo{font-size:1.2rem;font-weight:700;letter-spacing:.5px;display:flex;align-items:center;gap:.6rem;}
+  .logo-badge{background:rgba(255,255,255,.2);border-radius:4px;padding:2px 8px;font-size:.7rem;letter-spacing:1px;text-transform:uppercase;}
+  nav a{color:rgba(255,255,255,.85);text-decoration:none;margin-left:1.5rem;font-size:.9rem;}
+  nav a:hover{color:#fff;}
+
+  .hero{background:linear-gradient(120deg,var(--brand-dark) 0%,var(--brand) 60%,#26a69a 100%);color:#fff;padding:3.5rem 2rem;}
+  .hero-inner{max-width:1100px;margin:0 auto;}
+  .hero h1{font-size:2rem;font-weight:700;margin-bottom:.5rem;}
+  .hero .subtitle{font-size:1.05rem;opacity:.9;margin-bottom:1rem;}
+  .hero .badge{display:inline-block;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);border-radius:20px;padding:3px 14px;font-size:.78rem;letter-spacing:.5px;}
+
+  .layout{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:240px 1fr;gap:2.5rem;padding:2.5rem 2rem;}
+
+  .sidebar{position:sticky;top:1rem;align-self:start;}
+  .sidebar-section{margin-bottom:1.5rem;}
+  .sidebar-section h4{font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:.5rem;font-weight:600;}
+  .sidebar-section a{display:block;padding:4px 0;color:var(--brand-dark);text-decoration:none;font-size:.9rem;}
+  .sidebar-section a:hover{color:var(--brand);text-decoration:underline;}
+
+  .content h2{font-size:1.5rem;font-weight:700;margin:2.5rem 0 .8rem;padding-bottom:.4rem;border-bottom:2px solid var(--brand-light);color:var(--brand-dark);}
+  .content h3{font-size:1.1rem;font-weight:600;margin:1.8rem 0 .6rem;color:var(--text);}
+  .content p{margin-bottom:.9rem;color:#333;}
+  .content ul,.content ol{margin:.5rem 0 1rem 1.5rem;}
+  .content li{margin-bottom:.4rem;color:#333;}
+  .content a{color:var(--brand);}
+
+  .info-box{background:var(--brand-light);border-left:4px solid var(--brand);border-radius:0 6px 6px 0;padding:.8rem 1rem;margin:1rem 0;font-size:.9rem;}
+  .info-box strong{color:var(--brand-dark);}
+  .warning-box{background:#fff8e1;border-left:4px solid #ffa000;border-radius:0 6px 6px 0;padding:.8rem 1rem;margin:1rem 0;font-size:.9rem;}
+
+  .steps{display:grid;gap:1rem;margin:1rem 0;}
+  .step{display:flex;gap:1rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:1rem;}
+  .step-num{min-width:32px;height:32px;background:var(--brand);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;flex-shrink:0;}
+  .step-body h4{margin-top:0;margin-bottom:.3rem;}
+  .step-body p{margin:0;font-size:.9rem;color:var(--muted);}
+
+  .feature-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0;}
+  .feature-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:1.2rem;}
+  .feature-card .icon{font-size:1.6rem;margin-bottom:.5rem;}
+  .feature-card h4{margin:0 0 .4rem;color:var(--brand-dark);}
+  .feature-card p{margin:0;font-size:.88rem;color:var(--muted);}
+
+  .item-cards{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0;}
+  .item-card{border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+  .item-card-header{background:var(--brand);color:#fff;padding:.7rem 1rem;font-weight:600;display:flex;align-items:center;gap:.5rem;}
+  .item-card-body{padding:1rem;font-size:.9rem;color:#333;}
+  .item-card-body ul{margin:.4rem 0 0 1.2rem;}
+
+  .detail-list{list-style:none;margin:0;padding:0;}
+  .detail-list li{display:flex;gap:.8rem;padding:.6rem 0;border-bottom:1px solid var(--border);}
+  .detail-list li:last-child{border:none;}
+  .detail-list .num{min-width:24px;height:24px;background:var(--brand-light);color:var(--brand-dark);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0;margin-top:2px;}
+  .detail-list .body strong{display:block;font-size:.9rem;margin-bottom:.2rem;}
+  .detail-list .body p{margin:0;font-size:.85rem;color:var(--muted);}
+
+  code{background:var(--code-bg);padding:1px 5px;border-radius:3px;font-size:.88em;font-family:monospace;}
+  .required{color:#c62828;font-size:.8rem;margin-left:2px;}
+
+  .dialog-mock{background:#fff;border:1px solid #ccc;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.12);padding:1.5rem;max-width:480px;margin:1rem 0;}
+  .dialog-mock h5{font-size:1rem;font-weight:700;margin-bottom:1rem;color:var(--text);}
+  .dialog-field{margin-bottom:.8rem;}
+  .dialog-field label{display:block;font-size:.82rem;font-weight:600;margin-bottom:.3rem;color:var(--muted);}
+  .dialog-field .field-val{border:2px solid var(--brand);border-radius:4px;padding:.4rem .6rem;font-size:.9rem;color:#333;}
+  .dialog-field .select-val{border:1px solid #ccc;border-radius:4px;padding:.4rem .6rem;font-size:.9rem;display:flex;align-items:center;justify-content:space-between;}
+  .dialog-actions{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1rem;}
+  .btn-primary{background:var(--brand);color:#fff;border:none;border-radius:4px;padding:.45rem 1.1rem;font-size:.9rem;cursor:pointer;font-weight:500;}
+  .btn-secondary{background:#fff;color:#333;border:1px solid #ccc;border-radius:4px;padding:.45rem 1.1rem;font-size:.9rem;cursor:pointer;}
+
+  /* UI Mockups */
+  .ui-mock{background:#fff;border:1px solid #ccc;border-radius:8px;overflow:hidden;margin:1.2rem 0;box-shadow:0 2px 10px rgba(0,0,0,.08);}
+  .ui-mock-bar{background:#f3f3f3;border-bottom:1px solid #ddd;padding:.45rem .8rem;display:flex;align-items:center;gap:.5rem;font-size:.78rem;color:#555;}
+  .ui-mock-bar .tab{padding:.25rem .7rem;border-radius:4px;cursor:default;}
+  .ui-mock-bar .tab.active{background:var(--brand);color:#fff;font-weight:600;}
+  .ui-mock-bar .save-btn{background:#fff;border:1px solid #ccc;border-radius:4px;padding:2px 10px;font-size:.78rem;margin-right:.3rem;}
+  .ui-mock-bar .add-btn{background:var(--brand-light);color:var(--brand-dark);border:1px solid var(--brand);border-radius:4px;padding:2px 10px;font-size:.78rem;font-weight:600;}
+  .ui-mock-label{background:#f9f9f9;padding:.4rem .8rem;font-size:.72rem;font-weight:700;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;border-bottom:1px solid #eee;}
+  .ui-mock-title{padding:.5rem .8rem .3rem;font-size:1rem;font-weight:700;color:var(--text);}
+
+  /* File table */
+  .file-table{width:100%;border-collapse:collapse;font-size:.82rem;}
+  .file-table th{background:#f5f5f5;text-align:left;padding:.4rem .6rem;border-bottom:2px solid #ddd;color:var(--muted);font-weight:600;font-size:.75rem;}
+  .file-table td{padding:.4rem .6rem;border-bottom:1px solid #eee;vertical-align:middle;}
+  .file-table tr:last-child td{border:none;}
+  .file-icon{width:18px;height:18px;border-radius:3px;display:inline-block;margin-right:4px;vertical-align:middle;}
+  .tag{display:inline-block;border-radius:20px;padding:1px 8px;font-size:.72rem;font-weight:600;border:1px solid;}
+  .tag.pid{color:#c62828;border-color:#ef9a9a;background:#fff3f3;}
+  .tag.ts{color:#1565c0;border-color:#90caf9;background:#e3f2fd;}
+  .tag.doc{color:#555;border-color:#ccc;background:#f5f5f5;}
+  .status-badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:.75rem;font-weight:600;}
+  .status-badge.success{background:#4caf50;color:#fff;}
+  .status-badge.inprog{background:#fff;border:1px solid #ccc;color:#777;}
+
+  /* Document viewer */
+  .doc-viewer{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #ddd;min-height:280px;font-size:.82rem;}
+  .doc-viewer .doc-page{padding:1rem;border-right:1px solid #ddd;background:#fff;}
+  .doc-viewer .doc-page h4{font-size:.92rem;text-align:center;margin-bottom:.3rem;}
+  .doc-viewer .doc-page h5{font-size:.85rem;text-align:center;margin-bottom:.4rem;color:#444;}
+  .doc-viewer .doc-page .meta{font-size:.72rem;text-align:center;color:var(--muted);margin-bottom:.8rem;}
+  .doc-viewer .doc-page .section-title{font-weight:700;margin:.6rem 0 .2rem;font-size:.82rem;}
+  .doc-viewer .doc-page p,.doc-viewer .doc-page li{font-size:.78rem;color:#444;margin-bottom:.2rem;}
+  .doc-viewer .doc-review{padding:.8rem;}
+  .doc-review-tabs{display:flex;gap:.3rem;margin-bottom:.7rem;flex-wrap:wrap;}
+  .doc-review-tabs .rtab{padding:3px 10px;border-radius:4px;font-size:.75rem;cursor:default;border:1px solid #ddd;color:#555;}
+  .doc-review-tabs .rtab.active{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:600;}
+  .doc-review .review-title{font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:.5rem;}
+  .doc-review ul{margin-left:1rem;}
+  .doc-review li{font-size:.78rem;color:#444;margin-bottom:.2rem;}
+
+  /* P&ID viewer */
+  .pid-viewer{background:#f0f0f0;display:flex;align-items:center;justify-content:center;min-height:200px;position:relative;}
+  .pid-diagram{background:#fff;border:2px solid #999;width:85%;max-width:420px;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+  .pid-diagram svg{width:100%;height:100%;}
+  .pid-controls{position:absolute;left:.5rem;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:.3rem;}
+  .pid-controls button{width:28px;height:28px;border:1px solid #ccc;background:#fff;border-radius:4px;font-size:.85rem;cursor:default;display:flex;align-items:center;justify-content:center;}
+  .pid-label{position:absolute;bottom:.5rem;right:.5rem;font-size:.65rem;color:#888;background:rgba(255,255,255,.8);padding:2px 6px;border-radius:4px;}
+
+  /* Intelligent Board */
+  .board-mock{display:grid;grid-template-columns:1fr 340px;border-top:1px solid #ddd;min-height:300px;}
+  .board-canvas{background:radial-gradient(circle,#e8e8e8 1px,transparent 1px) 0 0/20px 20px,#f5f5f5;position:relative;padding:1rem;}
+  .board-toolbar{position:absolute;left:.6rem;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:.3rem;}
+  .board-toolbar button{width:28px;height:28px;border:1px solid #ccc;background:#fff;border-radius:4px;font-size:.85rem;cursor:default;display:flex;align-items:center;justify-content:center;}
+  .board-node{background:#fff;border:2px solid #f48fb1;border-radius:8px;padding:.6rem .9rem;display:inline-flex;flex-direction:column;align-items:center;gap:.3rem;font-size:.75rem;font-weight:600;color:#333;min-width:90px;box-shadow:0 2px 6px rgba(0,0,0,.08);}
+  .board-node .node-icon{font-size:1.4rem;}
+  .board-node-label{font-size:.68rem;color:var(--muted);margin-bottom:.2rem;}
+  .board-nodes{display:flex;gap:1rem;position:absolute;top:50%;left:50%;transform:translate(-60%,-50%);}
+  .board-chat{border-left:1px solid #ddd;display:flex;flex-direction:column;background:#fff;}
+  .board-chat-header{background:#fff;border-bottom:1px solid #eee;padding:.6rem .8rem;display:flex;align-items:center;justify-content:space-between;}
+  .board-chat-title{font-size:.85rem;font-weight:700;display:flex;align-items:center;gap:.5rem;}
+  .chat-star{color:var(--brand);font-size:1.1rem;}
+  .board-chat-msgs{flex:1;padding:.8rem;display:flex;flex-direction:column;gap:.6rem;}
+  .chat-msg{background:#f5f5f5;border-radius:8px;padding:.5rem .7rem;font-size:.78rem;color:#333;}
+  .chat-msg.user{background:var(--brand-light);align-self:flex-end;}
+  .chat-msg .mention{color:var(--brand);font-weight:600;}
+  .chat-msg .thinking{font-size:.72rem;color:var(--brand);font-style:italic;}
+  .chat-msg .check{color:#4caf50;font-size:.72rem;}
+  .board-chat-input{border-top:1px solid #eee;padding:.5rem .8rem;display:flex;align-items:center;gap:.4rem;}
+  .board-chat-input input{flex:1;border:1px solid #ddd;border-radius:20px;padding:.3rem .8rem;font-size:.78rem;color:#999;}
+  .board-data-bar{background:#fafafa;border-bottom:1px solid #eee;padding:.4rem .8rem;font-size:.78rem;color:#555;display:flex;align-items:center;gap:.4rem;}
+  .board-data-bar .data-tag{background:var(--brand-light);color:var(--brand-dark);border-radius:4px;padding:1px 7px;font-weight:600;}
+
+  .print-btn{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--brand);color:#fff;border:none;border-radius:8px;padding:.7rem 1.4rem;font-size:.9rem;font-weight:600;cursor:pointer;box-shadow:0 4px 14px rgba(0,137,123,.4);z-index:999;display:flex;align-items:center;gap:.5rem;}
+  .print-btn:hover{background:var(--brand-dark);}
+  @media print{
+    .print-btn,.sidebar,nav,header{display:none!important;}
+    .layout{grid-template-columns:1fr;padding:0;}
+    .hero{background:#fff!important;color:#000;border-bottom:2px solid #ccc;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    body{font-size:11px;}
+    .content h2{font-size:1.1rem;break-after:avoid;}
+    .feature-grid,.item-cards{grid-template-columns:1fr 1fr;}
+    .doc-viewer,.board-mock{grid-template-columns:1fr 1fr;}
+    .ui-mock,.dialog-mock,.steps,.detail-list{break-inside:avoid;}
+    a{color:#000;}
+    footer{background:#fff;border-top:1px solid #ccc;}
+    .info-box,.warning-box{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .status-badge.success{background:#4caf50!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  }
+  @media(max-width:700px){
+    .layout{grid-template-columns:1fr;}
+    .sidebar{display:none;}
+    .feature-grid,.item-cards,.doc-viewer,.board-mock{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">IntuigenceAI <span class="logo-badge">Preview</span></div>
+    <nav>
+      <a href="#overview">Overview</a>
+      <a href="#getting-started">Get Started</a>
+      <a href="#data-catalog">Data Catalog</a>
+      <a href="#intelligent-board">Intelli Board</a>
+      <a href="#pam">PAM</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="badge">Microsoft Fabric Workload &middot; IntuigenceAI</div>
+    <h1 style="margin-top:.8rem;">IntuigenceAI Industrial Workers</h1>
+    <p class="subtitle">PhD-level AI Engineers for your industrial operations &mdash; built natively on Microsoft Fabric.</p>
+    <p style="font-size:.88rem;opacity:.8;">Publisher: IntuigenceAI &nbsp;&middot;&nbsp; Compatible with: Lakehouse &nbsp;&middot;&nbsp; Available in all workspaces</p>
+  </div>
+</div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <h4>Getting Started</h4>
+      <a href="#overview">Overview</a>
+      <a href="#getting-started">How to start the workload</a>
+      <a href="#data-catalog">Creating a Data Catalog</a>
+      <a href="#catalog-ui">Data Catalog UI</a>
+      <a href="#intelligent-board">Creating an Intelligent Board</a>
+    </div>
+    <div class="sidebar-section">
+      <h4>Features</h4>
+      <a href="#pam">Chat with PAM</a>
+      <a href="#pid">Analyze P&amp;ID Diagrams</a>
+      <a href="#doc-viewer">Document Viewer</a>
+      <a href="#grounded">Grounded Responses</a>
+    </div>
+    <div class="sidebar-section">
+      <h4>Reference</h4>
+      <a href="#faq">FAQ</a>
+      <a href="#compatibility">Compatibility</a>
+    </div>
+  </aside>
+
+  <main class="content">
+
+    <h2 id="overview">Overview</h2>
+    <p><strong>IntuigenceAI Industrial Workers</strong> is a Microsoft Fabric workload published by IntuigenceAI. It brings AI-powered Synthetic Engineers directly into your Fabric environment, enabling industrial teams to analyze P&amp;ID diagrams, query plant documents, and get expert-level insights &mdash; all without leaving Fabric.</p>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="icon">&#129302;</div>
+        <h4>AI Synthetic Engineers</h4>
+        <p>Deploy PhD-level AI engineers trained on industrial knowledge directly inside your workspace.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">&#128506;</div>
+        <h4>P&amp;ID Analysis</h4>
+        <p>Analyze piping &amp; instrumentation diagrams and understand equipment connections automatically.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">&#128451;</div>
+        <h4>Knowledge Graph Catalog</h4>
+        <p>Upload and index P&amp;IDs, timeseries data, and documents into a structured knowledge graph.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">&#128206;</div>
+        <h4>Grounded Responses</h4>
+        <p>Every answer is backed by source citations from your own documents and plant data.</p>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <strong>Preview Notice:</strong> This workload is currently in preview. Features and UI may change. Contact your admin to configure the workload for your organization.
+    </div>
+
+    <!-- Getting Started -->
+    <h2 id="getting-started">How to Start the Workload</h2>
+    <p>After logging in to <strong>Microsoft Fabric</strong>, navigate to <strong>Workloads</strong> in the left sidebar to find the IntuigenceAI workload.</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h4>Open the Workloads page</h4>
+          <p>In the left sidebar, click <strong>Workloads</strong>. Locate <em>IntuigenceAI (preview)</em> and click <strong>Learn more</strong>.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h4>Open the workload</h4>
+          <p>Click <strong>Open</strong> in the "Get Started" panel. Select your workspace with a valid Fabric capacity.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h4>Create a Data Catalog</h4>
+          <p>Create a <em>Data Catalog</em> item to store and index your plant files (P&amp;IDs, documents, timeseries).</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h4>Create an Intelligent Board</h4>
+          <p>Create an <em>Intelligent Board</em> item and link it to your Data Catalog to start your first Agent Session.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="warning-box">
+      <strong>Admin configuration required:</strong> The workload must be enabled by your Fabric administrator. If you see <em>"Contact your admin to configure this workload"</em>, reach out to your IT or Fabric admin.
+    </div>
+
+    <!-- Data Catalog -->
+    <h2 id="data-catalog">Creating a Data Catalog</h2>
+    <p>A <strong>Data Catalog</strong> is the foundation of your IntuigenceAI deployment. It acts as a <em>Knowledge Graph</em> that stores and indexes all industrial files your AI workers will reference.</p>
+
+    <h3>How to create a Data Catalog</h3>
+    <p>From the workload detail page, click <strong>Data Catalog</strong> under Item Types. Fill in the creation dialog:</p>
+
+    <div class="dialog-mock">
+      <h5>New Data Catalog</h5>
+      <div class="dialog-field">
+        <label>Name <span class="required">*</span></label>
+        <div class="field-val">my-plant-catalog</div>
+      </div>
+      <div class="dialog-field">
+        <label>Location <span class="required">*</span></label>
+        <div class="select-val"><span>Intuigence AI Dev</span><span>&#9662;</span></div>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn-primary">Create</button>
+        <button class="btn-secondary">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Data Catalog UI -->
+    <h2 id="catalog-ui">Data Catalog &mdash; File Management</h2>
+    <p>Once created, the Data Catalog opens to the <strong>Home</strong> view displaying a file list under the <em>Knowledge Graph</em> section. Use <strong>+ Add Data</strong> to upload new files.</p>
+
+    <div class="ui-mock">
+      <div class="ui-mock-bar">
+        <button class="save-btn">Save</button>
+        <button class="add-btn">+ Add Data</button>
+        <span style="margin-left:auto;font-size:.72rem;color:#aaa;">10 per page &nbsp; 1&ndash;10 of 12 &nbsp; 1/2 &lsaquo; &rsaquo;</span>
+      </div>
+      <div class="ui-mock-label">Knowledge Graph</div>
+      <div class="ui-mock-title">Intuigence Data Catalog</div>
+      <div style="padding:.4rem .8rem .6rem;">
+        <input style="width:220px;border:1px solid #ddd;border-radius:4px;padding:3px 8px;font-size:.78rem;color:#aaa;" placeholder="Filter by keyword" readonly/>
+      </div>
+      <table class="file-table">
+        <thead>
+          <tr><th>File name</th><th>Type</th><th>File size</th><th>Status</th><th>Uploaded</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>P&amp;ID_0005.pdf</td>
+            <td><span class="tag pid">P&amp;ID</span></td>
+            <td>0 B</td>
+            <td><span class="status-badge inprog">In progress</span></td>
+            <td>16 Mar 2026, 17:29:37</td>
+          </tr>
+          <tr>
+            <td>P&amp;ID_0004.pdf</td>
+            <td><span class="tag pid">P&amp;ID</span></td>
+            <td>0 B</td>
+            <td><span class="status-badge inprog">In progress</span></td>
+            <td>16 Mar 2026, 17:29:37</td>
+          </tr>
+          <tr>
+            <td>July-Sept-2025.xlsx</td>
+            <td><span class="tag ts">Timeseries</span></td>
+            <td>0 B</td>
+            <td><span class="status-badge inprog">In progress</span></td>
+            <td>16 Mar 2026, 17:29:22</td>
+          </tr>
+          <tr>
+            <td>P&amp;ID_0003.pdf</td>
+            <td><span class="tag pid">P&amp;ID</span></td>
+            <td>666.6 KB</td>
+            <td><span class="status-badge success">Success</span></td>
+            <td>16 Mar 2026, 17:28:56</td>
+          </tr>
+          <tr>
+            <td>P&amp;ID_0002.png</td>
+            <td><span class="tag pid">P&amp;ID</span></td>
+            <td>1.4 MB</td>
+            <td><span class="status-badge success">Success</span></td>
+            <td>16 Mar 2026, 17:28:54</td>
+          </tr>
+          <tr>
+            <td>Non_P&amp;ID_0008.pdf</td>
+            <td><span class="tag doc">Document</span></td>
+            <td>1.0 MB</td>
+            <td><span class="status-badge success">Success</span></td>
+            <td>16 Mar 2026, 17:28:38</td>
+          </tr>
+          <tr>
+            <td>Non_P&amp;ID_0007.pdf</td>
+            <td><span class="tag doc">Document</span></td>
+            <td>3.8 MB</td>
+            <td><span class="status-badge success">Success</span></td>
+            <td>16 Mar 2026, 17:28:38</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Supported file types</h3>
+    <ul class="detail-list">
+      <li>
+        <div class="num">1</div>
+        <div class="body"><strong><span class="tag pid">P&amp;ID</span> &mdash; Piping &amp; Instrumentation Diagrams</strong><p>Upload PDF or image-format P&amp;ID sheets. The AI will automatically extract equipment tags, line numbers, and connections.</p></div>
+      </li>
+      <li>
+        <div class="num">2</div>
+        <div class="body"><strong><span class="tag ts">Timeseries</span> &mdash; Operational Data (Excel / CSV)</strong><p>Upload timeseries data exported from your historian or process control system. Supports <code>.xlsx</code> and <code>.csv</code> formats.</p></div>
+      </li>
+      <li>
+        <div class="num">3</div>
+        <div class="body"><strong><span class="tag doc">Document</span> &mdash; General Documents</strong><p>Upload equipment manuals, SOPs, maintenance records, and other non-P&amp;ID PDFs. PAM will cite these in its answers.</p></div>
+      </li>
+    </ul>
+
+    <h3>File status</h3>
+    <ul class="detail-list">
+      <li>
+        <div class="num">&#10003;</div>
+        <div class="body"><strong><span class="status-badge success">Success</span></strong><p>The file has been fully indexed and is available to PAM for querying and citation.</p></div>
+      </li>
+      <li>
+        <div class="num">&#9203;</div>
+        <div class="body"><strong><span class="status-badge inprog">In progress</span></strong><p>The file is still being processed. Large or complex P&amp;IDs may take additional time. Refresh the page to check the latest status.</p></div>
+      </li>
+    </ul>
+
+    <!-- Document Viewer -->
+    <h2 id="doc-viewer">Document Viewer</h2>
+    <p>Click any file in the Data Catalog to open it in the built-in <strong>Document Viewer</strong>. The viewer shows the original document on the left and AI-extracted content on the right across five tabs.</p>
+
+    <div class="ui-mock">
+      <div class="ui-mock-bar">
+        <span style="color:#888;">&larr; Back</span>
+        <span style="flex:1;text-align:center;font-size:.75rem;">1 / 2 &nbsp; &mdash; &nbsp; 130% &nbsp; +</span>
+        <div class="doc-review-tabs" style="margin:0;">
+          <span class="rtab active">Review</span>
+          <span class="rtab">Extractions</span>
+          <span class="rtab">Raw</span>
+          <span class="rtab">Summary</span>
+          <span class="rtab">Details</span>
+        </div>
+      </div>
+      <div class="doc-viewer">
+        <div class="doc-page">
+          <h4>Equipment Manual</h4>
+          <h5>Centrifugal Pump P-101A</h5>
+          <div class="meta">Model: CP-500X &nbsp;|&nbsp; Serial: SN-2024-00847 &nbsp;|&nbsp; Rev: 3</div>
+          <div class="section-title">1. General Description</div>
+          <p>The CP-500X centrifugal pump is designed for cooling water circulation in industrial process plants. It features a single-stage, end-suction design with a closed impeller for efficient fluid transfer.</p>
+          <div class="section-title">2. Technical Specifications</div>
+          <ul style="list-style:none;padding:0;margin:.3rem 0;">
+            <li>&middot; Flow Rate: 100 GPM (nominal), 120 GPM (max)</li>
+            <li>&middot; Head: 80 ft TDH at design point</li>
+            <li>&middot; Motor: 50 HP, 3-phase, 460V, 60 Hz, TEFC</li>
+            <li>&middot; Speed: 3550 RPM</li>
+          </ul>
+        </div>
+        <div class="doc-review" style="background:#fafafa;">
+          <div class="review-title">Equipment Manual &middot; Centrifugal Pump P-101A &middot; Model: CP-500X &middot; Serial: SN-2024-00847 &middot; Rev: 3</div>
+          <p style="font-size:.78rem;color:#555;margin-bottom:.5rem;">General Description: The CP-500X is designed for cooling water circulation. Single-stage, end-suction design with a closed impeller.</p>
+          <p style="font-size:.75rem;font-weight:700;margin-bottom:.3rem;">Technical Specifications</p>
+          <ul style="list-style:disc;padding-left:1.2rem;">
+            <li style="font-size:.77rem;color:#444;">Flow Rate: 100 GPM (nominal), 120 GPM (maximum)</li>
+            <li style="font-size:.77rem;color:#444;">Head: 80 ft TDH at design point</li>
+            <li style="font-size:.77rem;color:#444;">Motor: 50 HP, 3-phase, 460V, 60 Hz, TEFC</li>
+            <li style="font-size:.77rem;color:#444;">Impeller Diameter: 8.5 inches</li>
+            <li style="font-size:.77rem;color:#444;">Suction: 4 inch, 150# RF flange</li>
+            <li style="font-size:.77rem;color:#444;">Materials: Casing &ndash; Cast Iron ASTM A48, Impeller &ndash; Bronze ASTM B584</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <ul class="detail-list">
+      <li><div class="num">1</div><div class="body"><strong>Review</strong><p>Displays the AI-structured extraction of the document, showing sections, key specs, and entities identified from the file.</p></div></li>
+      <li><div class="num">2</div><div class="body"><strong>Extractions</strong><p>Shows raw extracted fields and key-value pairs pulled from the document by the AI engine.</p></div></li>
+      <li><div class="num">3</div><div class="body"><strong>Raw</strong><p>The full unstructured text extracted from the document, useful for debugging or manual review.</p></div></li>
+      <li><div class="num">4</div><div class="body"><strong>Summary</strong><p>A concise AI-generated summary of the document's key contents and purpose.</p></div></li>
+      <li><div class="num">5</div><div class="body"><strong>Details</strong><p>Metadata including file size, upload date, processing status, and catalog linkage information.</p></div></li>
+    </ul>
+
+    <!-- P&ID -->
+    <h2 id="pid">Analyzing P&amp;ID Diagrams</h2>
+    <p>P&amp;ID files tagged as <span class="tag pid">P&amp;ID</span> open in a dedicated <strong>diagram viewer</strong> with pan and zoom controls. The AI engine automatically parses the diagram to extract equipment tags, instrument loops, and pipe connections for use by PAM.</p>
+
+    <div class="ui-mock">
+      <div class="ui-mock-bar">
+        <span style="color:#888;margin-right:.5rem;">&larr; Back</span>
+        <button class="save-btn">Save</button>
+        <button class="add-btn">+ Add Data</button>
+      </div>
+      <div class="pid-viewer" style="min-height:220px;position:relative;">
+        <div class="pid-controls" style="z-index:2;">
+          <button>&#128269;</button>
+          <button>&#9995;</button>
+        </div>
+        <div class="pid-diagram">
+          <svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg" style="opacity:.85;">
+            <!-- pipes -->
+            <line x1="20" y1="100" x2="280" y2="100" stroke="#c00" stroke-width="1.5"/>
+            <line x1="100" y1="60" x2="100" y2="140" stroke="#00c" stroke-width="1"/>
+            <line x1="200" y1="60" x2="200" y2="140" stroke="#00c" stroke-width="1"/>
+            <line x1="60" y1="80" x2="60" y2="120" stroke="#c00" stroke-width="1"/>
+            <line x1="240" y1="80" x2="240" y2="120" stroke="#c00" stroke-width="1"/>
+            <!-- vessels -->
+            <rect x="85" y="70" width="30" height="25" fill="none" stroke="#333" stroke-width="1.2" rx="2"/>
+            <text x="100" y="87" font-size="6" text-anchor="middle" fill="#333">V-101</text>
+            <rect x="185" y="70" width="30" height="25" fill="none" stroke="#333" stroke-width="1.2" rx="2"/>
+            <text x="200" y="87" font-size="6" text-anchor="middle" fill="#333">V-201</text>
+            <!-- pumps -->
+            <circle cx="60" cy="100" r="10" fill="none" stroke="#333" stroke-width="1.2"/>
+            <text x="60" y="103" font-size="5" text-anchor="middle" fill="#333">P-01</text>
+            <circle cx="240" cy="100" r="10" fill="none" stroke="#333" stroke-width="1.2"/>
+            <text x="240" y="103" font-size="5" text-anchor="middle" fill="#333">P-02</text>
+            <!-- instruments -->
+            <circle cx="140" cy="80" r="7" fill="#fffde7" stroke="#999" stroke-width=".8"/>
+            <text x="140" y="83" font-size="5" text-anchor="middle" fill="#555">PI</text>
+            <circle cx="160" cy="120" r="7" fill="#fffde7" stroke="#999" stroke-width=".8"/>
+            <text x="160" y="123" font-size="5" text-anchor="middle" fill="#555">TI</text>
+            <!-- title block -->
+            <rect x="220" y="160" width="75" height="35" fill="#f5f5f5" stroke="#999" stroke-width=".8"/>
+            <text x="257" y="173" font-size="5" text-anchor="middle" fill="#333" font-weight="bold">SAMPLE</text>
+            <text x="257" y="182" font-size="4" text-anchor="middle" fill="#666">P&amp;ID Sheet 03</text>
+            <text x="257" y="190" font-size="4" text-anchor="middle" fill="#666">Rev: 4</text>
+          </svg>
+        </div>
+        <div class="pid-label">Zoom: + / &minus;</div>
+      </div>
+    </div>
+
+    <p>Once a P&amp;ID is indexed successfully, PAM can answer questions such as:</p>
+    <ul>
+      <li>What are the upstream and downstream connections of equipment tag <code>HX-301</code>?</li>
+      <li>Which instruments are on line <code>6"-CS-3021</code>?</li>
+      <li>List all pressure indicators on this P&amp;ID sheet.</li>
+    </ul>
+
+    <!-- Intelligent Board -->
+    <h2 id="intelligent-board">Intelligent Board</h2>
+    <p>The <strong>Intelligent Board</strong> is an interactive canvas where your team collaborates with AI workers. It displays your connected data assets as visual nodes and provides a real-time chat panel with AI agents.</p>
+
+    <h3>Creating an Intelligent Board</h3>
+    <div class="dialog-mock">
+      <h5>New Intelligent Board</h5>
+      <div class="dialog-field">
+        <label>Name <span class="required">*</span></label>
+        <div class="field-val">operations-board-1</div>
+      </div>
+      <div class="dialog-field">
+        <label>Location <span class="required">*</span></label>
+        <div class="select-val"><span>Intuigence AI Dev</span><span>&#9662;</span></div>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn-primary">Create</button>
+        <button class="btn-secondary">Cancel</button>
+      </div>
+    </div>
+
+    <h3>Board canvas &amp; AI chat</h3>
+    <p>After creation, the board shows your linked Data Catalog files as draggable nodes on a canvas. The AI Plant Support Engineer chat panel opens on the right.</p>
+
+    <div class="ui-mock">
+      <div class="ui-mock-bar">
+        <button class="save-btn">Save</button>
+        <span style="margin-left:auto;font-size:.72rem;color:#aaa;">Add / Remove Files</span>
+      </div>
+      <div class="board-data-bar">
+        <span>Data:</span>
+        <span class="data-tag">Intuigence Data Catalog</span>
+      </div>
+      <div class="board-mock">
+        <div class="board-canvas" style="position:relative;min-height:240px;">
+          <div class="board-toolbar">
+            <button>&#8598;</button>
+            <button>&#9995;</button>
+            <button>&#128269;</button>
+            <button>&#128269;</button>
+            <button>&#128196;</button>
+            <button>&#9997;</button>
+            <button>&#11036;</button>
+            <button>T</button>
+            <button>&#128172;</button>
+          </div>
+          <div class="board-nodes">
+            <div>
+              <div class="board-node-label">P&amp;ID_0003.pdf</div>
+              <div class="board-node">
+                <div class="node-icon">&#128506;</div>
+                P&amp;ID
+              </div>
+            </div>
+            <div>
+              <div class="board-node-label">Non_P&amp;ID_0008.pdf</div>
+              <div class="board-node" style="border-color:#ce93d8;">
+                <div class="node-icon">&#128196;</div>
+                Document
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="board-chat">
+          <div class="board-chat-header">
+            <div class="board-chat-title"><span class="chat-star">&#10022;</span> AI Plant Support Engineer</div>
+            <div style="display:flex;gap:.4rem;font-size:.8rem;color:#aaa;">&#128249; &#127908; &#10005;</div>
+          </div>
+          <div class="board-chat-msgs">
+            <div class="chat-msg user"><span class="mention">@ai-plant-support-engineer</span> Hey, can you help supporting my plant?</div>
+            <div class="chat-msg">
+              <div class="thinking">&#10004; Thinking &nbsp; <span class="check">Completed</span></div>
+              <br/>Hi! I'm the AI Plant Support Engineer. How can I help you keep your units running safely and on-spec today?
+            </div>
+          </div>
+          <div class="board-chat-input">
+            <input placeholder="Type @ to mention agents directly" readonly/>
+            <span style="font-size:1rem;color:var(--brand);">&#9654;</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <ul class="detail-list">
+      <li><div class="num">1</div><div class="body"><strong>Canvas nodes</strong><p>Each file from your linked Data Catalog appears as a node (<span class="tag pid">P&amp;ID</span> or <span class="tag doc">Document</span>). You can drag, annotate, and arrange them on the canvas.</p></div></li>
+      <li><div class="num">2</div><div class="body"><strong>Mentioning agents</strong><p>Type <code>@</code> in the chat input to mention a specific AI worker directly, such as <code>@ai-plant-support-engineer</code>.</p></div></li>
+      <li><div class="num">3</div><div class="body"><strong>Add / Remove Files</strong><p>Use the <em>Add / Remove Files</em> button (top right of the board) to manage which Data Catalog files are active in the current session.</p></div></li>
+      <li><div class="num">4</div><div class="body"><strong>Canvas toolbar</strong><p>The left toolbar provides tools for selection, panning, zoom, adding notes, drawing, shapes, text annotations, and comment threads.</p></div></li>
+    </ul>
+
+    <!-- PAM -->
+    <h2 id="pam">AI Plant Support Engineer (PAM)</h2>
+    <p><strong>PAM</strong> is the primary AI worker available inside the Intelligent Board. PAM has access to your indexed Data Catalog and answers complex operational questions with grounded citations.</p>
+
+    <h3>What you can ask PAM</h3>
+    <div style="background:#f5f5f5;border-radius:10px;padding:1.2rem;margin:1rem 0;">
+      <div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:.7rem 1rem;font-size:.88rem;margin-bottom:.6rem;"><div style="font-size:.72rem;font-weight:700;color:var(--muted);margin-bottom:.3rem;">You</div>What is the status of heat exchanger HX-301?</div>
+      <div style="background:#fff;border-left:4px solid var(--brand);border-radius:8px;padding:.7rem 1rem;font-size:.88rem;margin-bottom:.6rem;"><div style="font-size:.72rem;font-weight:700;color:var(--brand);margin-bottom:.3rem;">PAM</div>Based on the indexed P&amp;ID and equipment documentation, HX-301 is rated for shell-side service at 150 psig / 300&deg;F. <em>[Source: P&amp;ID Sheet 12-A, Rev 4 &middot; Equipment Manual HX-301]</em></div>
+      <div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:.7rem 1rem;font-size:.88rem;margin-bottom:.6rem;"><div style="font-size:.72rem;font-weight:700;color:var(--muted);margin-bottom:.3rem;">You</div>Show upstream and downstream connections for HX-301.</div>
+      <div style="background:#fff;border-left:4px solid var(--brand);border-radius:8px;padding:.7rem 1rem;font-size:.88rem;"><div style="font-size:.72rem;font-weight:700;color:var(--brand);margin-bottom:.3rem;">PAM</div>HX-301 receives feed from pump P-210 via line 6"-CS-3021 and discharges to separator V-402 via 4"-CS-3022. <em>[Source: P&amp;ID Sheet 12-A, Rev 4]</em></div>
+    </div>
+
+    <!-- Grounded -->
+    <h2 id="grounded">Grounded Responses &amp; Source Citations</h2>
+    <p>Every answer PAM gives is <strong>grounded</strong> &mdash; traceable back to your own industrial data. Each response includes citations in the format:</p>
+    <div style="background:var(--code-bg);border-radius:6px;padding:.8rem 1rem;font-size:.88rem;font-family:monospace;margin:.8rem 0;">[Source: P&amp;ID Sheet 07-B, Rev 2 &middot; Equipment Manual CP-500X]</div>
+    <p>Click on citation references within the Intelligent Board to jump directly to the source document or P&amp;ID sheet in the Document Viewer.</p>
+
+    <!-- Compatibility -->
+    <h2 id="compatibility">Compatibility &amp; Requirements</h2>
+    <ul class="detail-list">
+      <li><div class="num">&#10003;</div><div class="body"><strong>Microsoft Fabric (with valid capacity)</strong><p>Requires a paid or trial Fabric capacity. Free capacities may have limitations.</p></div></li>
+      <li><div class="num">&#10003;</div><div class="body"><strong>Lakehouse</strong><p>Data Catalog items are compatible with Fabric Lakehouse for structured data ingestion.</p></div></li>
+      <li><div class="num">&#10003;</div><div class="body"><strong>All workspaces</strong><p>Available in any Fabric workspace once enabled by your admin.</p></div></li>
+    </ul>
+
+    <!-- FAQ -->
+    <h2 id="faq">Frequently Asked Questions</h2>
+    <ul class="detail-list">
+      <li><div class="num">?</div><div class="body"><strong>Why do I see "Contact your admin to configure this workload"?</strong><p>The workload must be explicitly enabled by a Fabric administrator in your organization's Admin settings.</p></div></li>
+      <li><div class="num">?</div><div class="body"><strong>How long does indexing take?</strong><p>Small documents index within seconds. Large P&amp;ID PDFs or multi-sheet files may show <span class="status-badge inprog">In progress</span> for several minutes. Refresh the Data Catalog to check the latest status.</p></div></li>
+      <li><div class="num">?</div><div class="body"><strong>Can I upload image-format P&amp;IDs?</strong><p>Yes. <code>.png</code>, <code>.jpg</code>, and <code>.pdf</code> are all supported for P&amp;ID files.</p></div></li>
+      <li><div class="num">?</div><div class="body"><strong>What does "preview" mean?</strong><p>The workload is functional but subject to change before general availability. It is covered by IntuigenceAI's <a href="https://www.intuigence.ai/website-terms">preview terms of use</a>.</p></div></li>
+    </ul>
+
+    <div style="margin-top:3rem;padding:1.5rem;background:var(--brand-light);border-radius:10px;text-align:center;">
+      <p style="font-weight:600;color:var(--brand-dark);margin-bottom:.4rem;">Ready to get started?</p>
+      <p style="color:var(--muted);font-size:.9rem;margin-bottom:1rem;">Open IntuigenceAI in Microsoft Fabric and create your first Agent Session.</p>
+      <a href="https://app.fabric.microsoft.com" style="background:var(--brand);color:#fff;padding:.5rem 1.4rem;border-radius:6px;text-decoration:none;font-weight:600;font-size:.9rem;">Open Microsoft Fabric &rarr;</a>
+    </div>
+
+  </main>
+</div>
+
+<footer style="background:#f5f5f5;border-top:1px solid var(--border);padding:2rem;text-align:center;font-size:.85rem;color:var(--muted);margin-top:2rem;">
+  IntuigenceAI Industrial Workers (preview) &middot; Published by IntuigenceAI &middot; Hosted on Microsoft Fabric<br/>
+  <span style="font-size:.78rem;">By using this workload you agree to the IntuigenceAI <a href="https://www.intuigence.ai/privacy-policy">privacy policy</a> and <a href="https://www.intuigence.ai/website-terms">terms of use</a>.</span>
+</footer>
+<button class="print-btn" onclick="window.print()">Save as PDF</button>
+</body>
+</html>
