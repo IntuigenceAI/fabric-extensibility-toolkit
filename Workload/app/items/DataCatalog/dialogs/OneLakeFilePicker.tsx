@@ -32,6 +32,8 @@ export interface OneLakeFilePickerProps {
   onSelect: (files: OneLakeFileSelection[]) => void;
   onCancel: () => void;
   allowedExtensions?: string[];
+  /** Maximum number of files that can be selected (quota remaining). */
+  maxFiles?: number;
 }
 
 interface FileEntry {
@@ -200,6 +202,7 @@ export function OneLakeFilePicker({
   onSelect,
   onCancel,
   allowedExtensions,
+  maxFiles,
 }: OneLakeFilePickerProps) {
   const styles = useStyles();
 
@@ -346,6 +349,7 @@ export function OneLakeFilePicker({
   };
 
   const selectedCount = selectedFiles.size;
+  const exceedsQuota = maxFiles !== undefined && selectedCount > maxFiles;
 
   return (
     <div className={styles.overlay} onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
@@ -500,16 +504,26 @@ export function OneLakeFilePicker({
 
         {/* Footer */}
         <div className={styles.footer}>
-          <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-            {selectedCount > 0 ? `${selectedCount} file(s) selected` : 'No files selected'}
-          </Text>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+              {selectedCount > 0 ? `${selectedCount} file(s) selected` : 'No files selected'}
+              {maxFiles !== undefined && ` (${maxFiles} remaining in quota)`}
+            </Text>
+            {exceedsQuota && (
+              <MessageBar intent="warning" style={{ padding: '4px 8px' }}>
+                <MessageBarBody>
+                  You selected {selectedCount} file(s) but only {maxFiles} upload(s) remaining. Please deselect some files.
+                </MessageBarBody>
+              </MessageBar>
+            )}
+          </div>
           <div className={styles.footerActions}>
             <Button appearance="secondary" onClick={onCancel}>
               Cancel
             </Button>
             <Button
               appearance="primary"
-              disabled={selectedCount === 0}
+              disabled={selectedCount === 0 || exceedsQuota}
               onClick={handleSubmit}
             >
               {selectedCount > 0 ? `Select (${selectedCount})` : 'Select'}

@@ -264,8 +264,14 @@ export function useDocumentProcessing(
         }
       } catch (err: any) {
         console.error('[useDocumentProcessing] OneLake ingest error:', err);
+        const errMsg = err.message || 'Ingestion failed';
+        // Parse QUOTA_EXCEEDED from backend 403 response
+        const isQuotaExceeded = errMsg.includes('403') && errMsg.includes('QUOTA_EXCEEDED');
+        const displayError = isQuotaExceeded
+          ? 'Document upload limit reached (Trial). Upgrade to upload more.'
+          : errMsg;
         for (const { localId } of localEntries) {
-          updateFile(localId, { status: 'failed', error: err.message || 'Ingestion failed' });
+          updateFile(localId, { status: 'failed', error: displayError });
         }
       }
     })();

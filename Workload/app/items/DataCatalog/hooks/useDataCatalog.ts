@@ -31,6 +31,7 @@ export function useDataCatalog(
   const sync = useOneLakeSync(workloadClient, itemObjectId);
   const [authReady, setAuthReady] = useState(false);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
+  const [quota, setQuota] = useState<{ used: number; limit: number; remaining: number } | null>(null);
   const apiClientRef = useRef<IntuigenceAPIClient | null>(null);
 
   // Create API client once workspace is resolved
@@ -57,6 +58,23 @@ export function useDataCatalog(
 
     return () => { cancelled = true; };
   }, [apiClient, sync.workspaceId]);
+
+  // Fetch quota
+  const refreshQuota = useCallback(async () => {
+    if (!apiClient) return;
+    try {
+      const q = await apiClient.getUploadQuota();
+      setQuota(q);
+    } catch (err) {
+      console.error('[useDataCatalog] Failed to fetch quota:', err);
+    }
+  }, [apiClient]);
+
+  useEffect(() => {
+    if (apiClient && authReady) {
+      refreshQuota();
+    }
+  }, [apiClient, authReady, refreshQuota]);
 
   // Keep refs to the latest definition and saveDefinition so that
   // handleDocumentReady (called from setInterval callbacks) always reads
@@ -224,7 +242,9 @@ export function useDataCatalog(
 
   const ingestFromOneLake = useCallback((files: OneLakeFileSelection[], docType?: string) => {
     processing.ingestFromOneLake(files, docType);
-  }, [processing]);
+    // Refresh quota after a short delay to allow the backend to process
+    setTimeout(() => { refreshQuota(); }, 2000);
+  }, [processing, refreshQuota]);
 
   const seedSampleData = useCallback(async () => {
     if (!apiClient) throw new Error('API client not ready');
@@ -251,8 +271,11 @@ export function useDataCatalog(
       );
     }
 
+    // Refresh quota after seeding
+    setTimeout(() => { refreshQuota(); }, 2000);
+
     return accepted.length;
-  }, [apiClient, processing]);
+  }, [apiClient, processing, refreshQuota]);
 
   const removeDocument = useCallback(async (ids: string[]) => {
     const currentDef = definitionRef.current;
@@ -297,7 +320,10 @@ export function useDataCatalog(
     });
     definitionRef.current = updatedDef;
     await saveDefinitionRef.current(updatedDef);
-  }, [apiClient, processing]);
+
+    // Refresh quota after deletion
+    refreshQuota();
+  }, [apiClient, processing, refreshQuota]);
 
   const save = useCallback(async () => {
     if (!sync.definition) return;
@@ -317,6 +343,8 @@ export function useDataCatalog(
     activeFiles: processing.activeFiles,
     removeActiveFile: processing.removeFile,
     clearCompletedFiles: processing.clearCompleted,
+    quota,
+    refreshQuota,
     selectedDocumentId,
     setSelectedDocumentId,
     save,

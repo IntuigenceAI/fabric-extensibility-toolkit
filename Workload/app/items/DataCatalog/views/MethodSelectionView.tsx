@@ -3,6 +3,7 @@ import {
   Card,
   Text,
   Spinner,
+  Tooltip,
   makeStyles,
   tokens,
   shorthands,
@@ -72,6 +73,28 @@ const useStyles = makeStyles({
     color: tokens.colorNeutralForeground2,
     fontSize: tokens.fontSizeBase200,
   },
+  cardDisabled: {
+    opacity: 0.5,
+    cursor: 'not-allowed',
+    ':hover': {
+      boxShadow: 'none',
+    },
+  },
+  quotaInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shorthands.gap('6px'),
+    ...shorthands.padding('8px', '16px'),
+    ...shorthands.borderRadius(tokens.borderRadiusMedium),
+    backgroundColor: tokens.colorNeutralBackground3,
+    fontSize: tokens.fontSizeBase200,
+    color: tokens.colorNeutralForeground2,
+  },
+  quotaFull: {
+    backgroundColor: tokens.colorPaletteRedBackground1,
+    color: tokens.colorPaletteRedForeground1,
+  },
 });
 
 interface MethodSelectionViewProps {
@@ -83,6 +106,7 @@ export function MethodSelectionView({ onAddData, onSampleSeeded }: MethodSelecti
   const styles = useStyles();
   const catalog = useDataCatalogContext();
   const [seeding, setSeeding] = useState(false);
+  const isQuotaFull = catalog.quota !== null && catalog.quota.remaining <= 0;
 
   const [seedError, setSeedError] = useState<string | null>(null);
 
@@ -113,18 +137,35 @@ export function MethodSelectionView({ onAddData, onSampleSeeded }: MethodSelecti
         </Text>
       </div>
 
+      {catalog.quota && (
+        <div className={`${styles.quotaInfo} ${isQuotaFull ? styles.quotaFull : ''}`}>
+          <span>{catalog.quota.used} / {catalog.quota.limit} documents used (Trial)</span>
+        </div>
+      )}
+
       <div className={styles.cards}>
-        <Card className={styles.card} onClick={onAddData}>
-          <div className={styles.iconContainer}>
-            <DocumentAdd24Regular fontSize={28} />
-          </div>
-          <Text weight="semibold" className={styles.cardLabel}>
-            Add Data
-          </Text>
-          <Text className={styles.cardDescription}>
-            Browse OneLake and select files from your Lakehouses.
-          </Text>
-        </Card>
+        <Tooltip
+          content="Document upload limit reached (Trial)"
+          relationship="label"
+          visible={isQuotaFull ? undefined : false}
+        >
+          <Card
+            className={`${styles.card} ${isQuotaFull ? styles.cardDisabled : ''}`}
+            onClick={isQuotaFull ? undefined : onAddData}
+          >
+            <div className={styles.iconContainer}>
+              <DocumentAdd24Regular fontSize={28} />
+            </div>
+            <Text weight="semibold" className={styles.cardLabel}>
+              Add Data
+            </Text>
+            <Text className={styles.cardDescription}>
+              {isQuotaFull
+                ? 'Upload limit reached. Upgrade to upload more.'
+                : 'Browse OneLake and select files from your Lakehouses.'}
+            </Text>
+          </Card>
+        </Tooltip>
 
         <Card className={styles.card} onClick={handleSeedSample}>
           <div className={styles.iconContainer}>

@@ -26,6 +26,10 @@ export interface DataCatalogContextValue {
   removeActiveFile: (localId: string) => void;
   clearCompletedFiles: () => void;
 
+  // Quota
+  quota: { used: number; limit: number; remaining: number } | null;
+  refreshQuota: () => Promise<void>;
+
   // Navigation
   selectedDocumentId: string | null;
   setSelectedDocumentId: (id: string | null) => void;

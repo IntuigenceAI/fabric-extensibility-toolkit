@@ -174,6 +174,7 @@ export function AddDataDialog({ onClose, onFilesSubmitted }: AddDataDialogProps)
         onSelect={handleFilePickerSelect}
         onCancel={handleFilePickerCancel}
         allowedExtensions={DOC_TYPE_EXTENSIONS[selectedDocType]}
+        maxFiles={catalog.quota?.remaining ?? undefined}
       />
     )}
     </>
