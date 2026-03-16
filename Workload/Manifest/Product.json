@@ -15,7 +15,7 @@
           "introduction": "Workload_Hub_GetStarted_1_Sub_Title",
           "description": "Workload_Hub_GetStarted_1_Description",
           "image": "assets/images/Workload_Hub_GetStarted_1.png",
-          "link": "https://aka.ms/get-started-learning-docs"
+          "link": "https://www.intuigence.ai"
         }
       ],
       "newSection": {
@@ -83,20 +83,28 @@
       },
       "slideMedia": [
         {
-          "mediaType": 1,
-          "source": "https://youtube.com/embed/UNgpBOCvwa8?si=KwsR879MaVZd5CJi"
+          "mediaType": 0,
+          "source": "assets/images/Workload_Hub_SlideMedia_1.png"
         },
         {
           "mediaType": 0,
-          "source": "assets/images/Workload_Hub_SlideMedia_1.png"
+          "source": "assets/images/Workload_Hub_SlideMedia_2.png"
+        },
+        {
+          "mediaType": 0,
+          "source": "assets/images/Workload_Hub_SlideMedia_3.png"
+        },
+        {
+          "mediaType": 0,
+          "source": "assets/images/Workload_Hub_SlideMedia_4.png"
         }
       ],
         "supportLink": {
           "documentation": {"url": "https://docs.intuigence.ai/fabric"},
           "certification": {"url": "https://docs.intuigence.ai/fabric/attestation"},
           "help": {"url": "https://docs.intuigence.ai/fabric/support"},
-          "privacy": {"url": "https://docs.intuigence.ai/privacy"},
-          "terms": {"url": "https://docs.intuigence.ai/terms"},
+          "privacy": {"url": "https://www.intuigence.ai/privacy-policy"},
+          "terms": {"url": "https://www.intuigence.ai/website-terms"},
           "license": {"url": "https://azuremarketplace.microsoft.com/en-us/marketplace/apps/intuigenceai.industrialworkers"}
       }
     },
