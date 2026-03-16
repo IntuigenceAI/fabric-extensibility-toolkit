@@ -122,7 +122,7 @@ export function useDataCatalog(
     });
   }, []);
 
-  const processing = useDocumentProcessing(apiClient, sync.itemObjectId, handleDocumentReady);
+  const processing = useDocumentProcessing(apiClient, sync.itemObjectId, handleDocumentReady, refreshQuota);
 
   // One-time status refresh: when the definition loads, check all non-terminal entries
   // against the backend API and update their status. This handles the case where
@@ -242,9 +242,7 @@ export function useDataCatalog(
 
   const ingestFromOneLake = useCallback((files: OneLakeFileSelection[], docType?: string) => {
     processing.ingestFromOneLake(files, docType);
-    // Refresh quota after a short delay to allow the backend to process
-    setTimeout(() => { refreshQuota(); }, 2000);
-  }, [processing, refreshQuota]);
+  }, [processing]);
 
   const seedSampleData = useCallback(async () => {
     if (!apiClient) throw new Error('API client not ready');
@@ -271,11 +269,8 @@ export function useDataCatalog(
       );
     }
 
-    // Refresh quota after seeding
-    setTimeout(() => { refreshQuota(); }, 2000);
-
     return accepted.length;
-  }, [apiClient, processing, refreshQuota]);
+  }, [apiClient, processing]);
 
   const removeDocument = useCallback(async (ids: string[]) => {
     const currentDef = definitionRef.current;
