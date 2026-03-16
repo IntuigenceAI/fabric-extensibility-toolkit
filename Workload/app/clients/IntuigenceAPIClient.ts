@@ -209,6 +209,27 @@ export class IntuigenceAPIClient {
     return res.json();
   }
 
+  /** Get file upload quota for the current tenant. */
+  async getUploadQuota(): Promise<{ used: number; limit: number; remaining: number }> {
+    const token = await this.authBridge.getWorkloadToken();
+
+    const res = await fetch(`${this.baseUrl}/api/v2/files/fabric/upload-quota`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'X-Fabric-Workspace-Id': this.workspaceId,
+      },
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`IntuigenceAI API error ${res.status}: ${text}`);
+    }
+
+    return res.json();
+  }
+
   /** Batch delete documents. */
   deleteDocuments(docIds: string[]): Promise<{ success: boolean }> {
     return this.request("DELETE", "/api/v1/documents", { doc_ids: docIds });

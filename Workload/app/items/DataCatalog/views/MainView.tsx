@@ -33,6 +33,7 @@ import {
   MenuPopover,
   MenuList,
   MenuItemRadio,
+  Tooltip,
 } from '@fluentui/react-components';
 import type { TableColumnDefinition } from '@fluentui/react-components';
 import {
@@ -49,6 +50,8 @@ import {
   Filter20Regular,
   ChevronLeft20Regular,
   ChevronRight20Regular,
+  Info16Regular,
+  Warning16Regular,
 } from '@fluentui/react-icons';
 import { useViewNavigation } from '../../../components/ItemEditor';
 import { useDataCatalogContext } from '../DataCatalogContext';
@@ -72,6 +75,28 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     ...shorthands.padding('20px', '24px', '8px'),
     ...shorthands.gap('2px'),
+  },
+  nameRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    ...shorthands.gap('16px'),
+  },
+  quotaIndicator: {
+    display: 'flex',
+    alignItems: 'center',
+    ...shorthands.gap('6px'),
+    fontSize: tokens.fontSizeBase200,
+    color: tokens.colorNeutralForeground3,
+    whiteSpace: 'nowrap' as const,
+  },
+  quotaIndicatorFull: {
+    display: 'flex',
+    alignItems: 'center',
+    ...shorthands.gap('6px'),
+    fontSize: tokens.fontSizeBase200,
+    color: tokens.colorPaletteRedForeground1,
+    whiteSpace: 'nowrap' as const,
   },
   subtitle: {
     display: 'block',
@@ -269,6 +294,7 @@ export function MainView({ onAddData }: MainViewProps) {
   const toasterId = useId('mainview-toaster');
   const { dispatchToast } = useToastController(toasterId);
 
+  const isQuotaFull = catalog.quota !== null && catalog.quota.remaining <= 0;
   const documents = catalog.definition?.documents || [];
 
   // Merge active processing files as placeholder rows
@@ -529,9 +555,22 @@ export function MainView({ onAddData }: MainViewProps) {
       {/* Header */}
       <div className={styles.header}>
         <Text className={styles.subtitle}>Knowledge Graph</Text>
-        <Text size={500} weight="semibold" as="h1">
-          {catalog.definition?.name || 'Untitled'}
-        </Text>
+        <div className={styles.nameRow}>
+          <Text size={500} weight="semibold" as="h1">
+            {catalog.definition?.name || 'Untitled'}
+          </Text>
+          {catalog.quota && (
+            <div className={isQuotaFull ? styles.quotaIndicatorFull : styles.quotaIndicator}>
+              {isQuotaFull ? <Warning16Regular /> : <Info16Regular />}
+              <span>
+                {isQuotaFull
+                  ? `Trial limit reached (${catalog.quota.used}/${catalog.quota.limit}). Upgrade to upload more.`
+                  : `${catalog.quota.used} of ${catalog.quota.limit} document uploads used (Trial)`
+                }
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Toolbar: search + delete (left) | pagination (right) */}
@@ -598,9 +637,15 @@ export function MainView({ onAddData }: MainViewProps) {
             <DocumentRegular fontSize={48} />
             <Text size={400} weight="semibold">No documents yet</Text>
             <Text>Add data to get started with your Knowledge Graph.</Text>
-            <Button appearance="primary" icon={<Add20Regular />} onClick={onAddData}>
-              Add Data
-            </Button>
+            <Tooltip
+              content="Document upload limit reached (Trial)"
+              relationship="label"
+              visible={isQuotaFull ? undefined : false}
+            >
+              <Button appearance="primary" icon={<Add20Regular />} onClick={onAddData} disabled={isQuotaFull}>
+                Add Data
+              </Button>
+            </Tooltip>
           </div>
         ) : (
           <DataGrid
