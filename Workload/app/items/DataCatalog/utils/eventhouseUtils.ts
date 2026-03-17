@@ -79,34 +79,40 @@ async function acquireKustoToken(
  * If consent has not been granted for the Kusto resource, it triggers the
  * Fabric consent flow automatically (handles AADSTS65001).
  */
-async function executeKqlQuery(
+/**
+ * Send a request to a Kusto REST endpoint.
+ *
+ * @param endpoint  'mgmt' for management commands (.show …) or 'query' for data queries
+ */
+async function executeKql(
   workloadClient: WorkloadClientAPI,
   queryServiceUri: string,
   databaseName: string,
-  query: string,
+  kql: string,
+  endpoint: 'mgmt' | 'query',
 ): Promise<unknown | null> {
   try {
     const scope = `${queryServiceUri}/.default`;
     const accessToken: AccessToken = await acquireKustoToken(workloadClient, scope);
 
-    const response = await fetch(`${queryServiceUri}/v1/rest/mgmt`, {
+    const response = await fetch(`${queryServiceUri}/v1/rest/${endpoint}`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken.token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ db: databaseName, csl: query }),
+      body: JSON.stringify({ db: databaseName, csl: kql }),
     });
 
     if (!response.ok) {
       const errorMessage = await response.text();
-      console.error(`[eventhouseUtils] KQL query failed: ${errorMessage}`);
+      console.error(`[eventhouseUtils] KQL ${endpoint} failed: ${errorMessage}`);
       return null;
     }
 
     return await response.json();
   } catch (error) {
-    console.error('[eventhouseUtils] KQL query error:', error);
+    console.error('[eventhouseUtils] KQL error:', error);
     return null;
   }
 }
@@ -123,11 +129,12 @@ export async function getTableList(
   queryServiceUri: string,
   databaseName: string,
 ): Promise<TableInfo[]> {
-  const result = await executeKqlQuery(
+  const result = await executeKql(
     workloadClient,
     queryServiceUri,
     databaseName,
     '.show tables',
+    'mgmt',
   );
   if (!result) return [];
 
@@ -154,11 +161,12 @@ export async function getTableRowCount(
   databaseName: string,
   tableName: string,
 ): Promise<number> {
-  const result = await executeKqlQuery(
+  const result = await executeKql(
     workloadClient,
     queryServiceUri,
     databaseName,
     `['${escapeKqlIdentifier(tableName)}'] | count`,
+    'query',
   );
   if (!result) return 0;
 
@@ -178,11 +186,12 @@ export async function queryTableData(
   databaseName: string,
   tableName: string,
 ): Promise<unknown> {
-  return executeKqlQuery(
+  return executeKql(
     workloadClient,
     queryServiceUri,
     databaseName,
     `['${escapeKqlIdentifier(tableName)}']`,
+    'query',
   );
 }
 
@@ -196,11 +205,12 @@ export async function queryTablePreview(
   tableName: string,
   limit = 10,
 ): Promise<unknown> {
-  return executeKqlQuery(
+  return executeKql(
     workloadClient,
     queryServiceUri,
     databaseName,
     `['${escapeKqlIdentifier(tableName)}'] | take ${limit}`,
+    'query',
   );
 }
 
