@@ -84,7 +84,7 @@ async function executeKqlQuery(
   queryServiceUri: string,
   databaseName: string,
   query: string,
-): Promise<object[] | null> {
+): Promise<unknown | null> {
   try {
     const scope = `${queryServiceUri}/.default`;
     const accessToken: AccessToken = await acquireKustoToken(workloadClient, scope);
@@ -177,7 +177,7 @@ export async function queryTableData(
   queryServiceUri: string,
   databaseName: string,
   tableName: string,
-): Promise<object[]> {
+): Promise<unknown> {
   return executeKqlQuery(
     workloadClient,
     queryServiceUri,
@@ -195,7 +195,7 @@ export async function queryTablePreview(
   databaseName: string,
   tableName: string,
   limit = 10,
-): Promise<object[]> {
+): Promise<unknown> {
   return executeKqlQuery(
     workloadClient,
     queryServiceUri,
@@ -211,7 +211,7 @@ export async function queryTablePreview(
 /**
  * Extract preview rows from a KQL result for display.
  */
-export function kqlResultToPreviewRows(kqlResult: object[], limit = 10): KqlPreviewResult {
+export function kqlResultToPreviewRows(kqlResult: unknown, limit = 10): KqlPreviewResult {
   if (!kqlResult) return { columns: [], rows: [] };
 
   const dataTable = findDataTable(kqlResult);
@@ -229,7 +229,7 @@ export function kqlResultToPreviewRows(kqlResult: object[], limit = 10): KqlPrev
 /**
  * Convert a KQL query result to a CSV string.
  */
-export function kqlResultToCsvString(kqlResult: object[]): string {
+export function kqlResultToCsvString(kqlResult: unknown): string {
   if (!kqlResult) return '';
 
   const dataTable = findDataTable(kqlResult);
@@ -266,26 +266,41 @@ interface KqlDataTable {
   Rows?: unknown[][];
 }
 
-function findDataTable(result: object[]): KqlDataTable | null {
-  if (!Array.isArray(result)) return null;
+function findDataTable(result: unknown): KqlDataTable | null {
+  if (!result) return null;
 
-  // KQL management endpoint returns frames; find the first DataTable with data
-  for (const frame of result) {
-    const f = frame as Record<string, unknown>;
-    if (f.FrameType === 'DataTable' || f.FrameType === 'dataTable') {
-      const cols = f.Columns as KqlDataTable['Columns'];
-      const rows = f.Rows as KqlDataTable['Rows'];
-      if (cols && rows && rows.length > 0) {
+  // Format 1: { Tables: [{ Columns, Rows }, ...] }  (v1/rest/mgmt response)
+  const asObj = result as Record<string, unknown>;
+  if (Array.isArray(asObj.Tables)) {
+    for (const table of asObj.Tables) {
+      const t = table as Record<string, unknown>;
+      const cols = t.Columns as KqlDataTable['Columns'];
+      const rows = t.Rows as KqlDataTable['Rows'];
+      if (cols && rows) {
         return { Columns: cols, Rows: rows };
       }
     }
   }
 
-  // Fallback: result might be a single table object
-  if (result.length > 0) {
-    const first = result[0] as Record<string, unknown>;
-    if (first.Columns && first.Rows) {
-      return first as unknown as KqlDataTable;
+  // Format 2: Array of frames with FrameType (v2 response)
+  if (Array.isArray(result)) {
+    for (const frame of result) {
+      const f = frame as Record<string, unknown>;
+      if (f.FrameType === 'DataTable' || f.FrameType === 'dataTable') {
+        const cols = f.Columns as KqlDataTable['Columns'];
+        const rows = f.Rows as KqlDataTable['Rows'];
+        if (cols && rows) {
+          return { Columns: cols, Rows: rows };
+        }
+      }
+    }
+
+    // Fallback: first element with Columns + Rows
+    if (result.length > 0) {
+      const first = result[0] as Record<string, unknown>;
+      if (first.Columns && first.Rows) {
+        return first as unknown as KqlDataTable;
+      }
     }
   }
 
