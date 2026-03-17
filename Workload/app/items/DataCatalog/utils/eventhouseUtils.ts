@@ -178,19 +178,21 @@ export async function getTableRowCount(
 }
 
 /**
- * Query all data from a table.
+ * Query data from a table with an optional row limit.
+ * Defaults to 50 000 rows to stay within the Kusto 64 MB result-set cap.
  */
 export async function queryTableData(
   workloadClient: WorkloadClientAPI,
   queryServiceUri: string,
   databaseName: string,
   tableName: string,
+  limit = 50_000,
 ): Promise<unknown> {
   return executeKql(
     workloadClient,
     queryServiceUri,
     databaseName,
-    `['${escapeKqlIdentifier(tableName)}']`,
+    `['${escapeKqlIdentifier(tableName)}'] | take ${limit}`,
     'query',
   );
 }
@@ -229,9 +231,15 @@ export function kqlResultToPreviewRows(kqlResult: unknown, limit = 10): KqlPrevi
 
   const columns = getColumnNames(dataTable);
   const allRows = getRows(dataTable);
-  const rows = allRows.slice(0, limit).map(row =>
-    row.map(cell => cell == null ? '' : String(cell))
-  );
+  const rows = allRows.slice(0, limit)
+    .filter(row => Array.isArray(row))
+    .map(row =>
+      row.map(cell => {
+        if (cell == null) return '';
+        if (typeof cell === 'object') return JSON.stringify(cell);
+        return String(cell);
+      })
+    );
 
   return { columns, rows };
 }
@@ -257,8 +265,10 @@ export function kqlResultToCsvString(kqlResult: unknown): string {
 
   // Data rows
   for (const row of rows) {
+    if (!Array.isArray(row)) continue;
     const fields = row.map(cell => {
       if (cell == null) return '';
+      if (typeof cell === 'object') return escapeCsvField(JSON.stringify(cell));
       return escapeCsvField(String(cell));
     });
     lines.push(fields.join(','));
