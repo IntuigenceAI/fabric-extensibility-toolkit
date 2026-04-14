@@ -92,6 +92,7 @@ export function BoardView() {
     resetBoardId,
     catalogDocumentIds,
     authError,
+    isSampleMode,
   } = useIntelligentBoardContext();
 
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -175,16 +176,18 @@ export function BoardView() {
           <Text size={200} className={styles.catalogLabel}>No data connected</Text>
         )}
 
-        <div style={{ marginLeft: 'auto' }}>
-          <Button
-            appearance="subtle"
-            size="small"
-            icon={<DocumentAdd24Regular />}
-            onClick={requestOpenDocuments}
-          >
-            Add / Remove Files
-          </Button>
-        </div>
+        {!isSampleMode && (
+          <div style={{ marginLeft: 'auto' }}>
+            <Button
+              appearance="subtle"
+              size="small"
+              icon={<DocumentAdd24Regular />}
+              onClick={requestOpenDocuments}
+            >
+              Add / Remove Files
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Board iframe */}

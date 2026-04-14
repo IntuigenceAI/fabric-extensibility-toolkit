@@ -110,6 +110,7 @@ export function DataCatalogEditor({ workloadClient }: DataCatalogEditorProps) {
             saving={catalog.saving}
             onAddData={handleAddData}
             quota={catalog.quota}
+            isSampleMode={catalog.isSampleMode}
           />
         )}
         views={views}
@@ -117,7 +118,7 @@ export function DataCatalogEditor({ workloadClient }: DataCatalogEditorProps) {
         isLoading={catalog.loading || !catalog.authReady}
         loadingMessage="Loading Knowledge Graph..."
       />
-      {showAddDialog && (
+      {showAddDialog && !catalog.isSampleMode && (
         <AddDataDialog onClose={handleCloseDialog} onFilesSubmitted={handleFilesSubmitted} />
       )}
       <Toaster toasterId={toasterId} position="bottom-end" />

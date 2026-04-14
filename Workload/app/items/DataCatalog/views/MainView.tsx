@@ -559,7 +559,12 @@ export function MainView({ onAddData }: MainViewProps) {
           <Text size={500} weight="semibold" as="h1">
             {catalog.definition?.name || 'Untitled'}
           </Text>
-          {catalog.quota && (
+          {catalog.isSampleMode ? (
+            <div className={styles.quotaIndicator}>
+              <Info16Regular />
+              <span>Sample Mode &mdash; Viewing pre-loaded example data</span>
+            </div>
+          ) : catalog.quota && (
             <div className={isQuotaFull ? styles.quotaIndicatorFull : styles.quotaIndicator}>
               {isQuotaFull ? <Warning16Regular /> : <Info16Regular />}
               <span>
@@ -582,7 +587,7 @@ export function MainView({ onAddData }: MainViewProps) {
           value={searchQuery}
           onChange={(_, data) => setSearchQuery(data.value)}
         />
-        {selectedIds.size > 0 && (
+        {selectedIds.size > 0 && !catalog.isSampleMode && (
           <Button
             appearance="subtle"
             icon={<Delete20Regular />}
@@ -636,27 +641,29 @@ export function MainView({ onAddData }: MainViewProps) {
           <div className={styles.emptyState}>
             <DocumentRegular fontSize={48} />
             <Text size={400} weight="semibold">No documents yet</Text>
-            <Text>Add data to get started with your Knowledge Graph.</Text>
-            <Tooltip
-              content="Document upload limit reached (Trial). Upgrade to upload more."
-              relationship="label"
-              visible={isQuotaFull ? undefined : false}
-            >
-              <span>
-                <Button appearance="primary" icon={<Add20Regular />} onClick={onAddData} disabled={isQuotaFull}>
-                  Add Data
-                </Button>
-              </span>
-            </Tooltip>
+            <Text>{catalog.isSampleMode ? 'Sample files are being processed.' : 'Add data to get started with your Knowledge Graph.'}</Text>
+            {!catalog.isSampleMode && (
+              <Tooltip
+                content="Document upload limit reached (Trial). Upgrade to upload more."
+                relationship="label"
+                visible={isQuotaFull ? undefined : false}
+              >
+                <span>
+                  <Button appearance="primary" icon={<Add20Regular />} onClick={onAddData} disabled={isQuotaFull}>
+                    Add Data
+                  </Button>
+                </span>
+              </Tooltip>
+            )}
           </div>
         ) : (
           <DataGrid
             items={paginatedDocs}
             columns={columns}
             getRowId={(item) => item.id}
-            selectionMode="multiselect"
+            selectionMode={catalog.isSampleMode ? 'single' : 'multiselect'}
             selectedItems={selectedIds}
-            onSelectionChange={(_, data) => setSelectedIds(data.selectedItems as Set<string>)}
+            onSelectionChange={catalog.isSampleMode ? undefined : (_, data) => setSelectedIds(data.selectedItems as Set<string>)}
             focusMode="composite"
             size="medium"
             className={styles.dataGrid}

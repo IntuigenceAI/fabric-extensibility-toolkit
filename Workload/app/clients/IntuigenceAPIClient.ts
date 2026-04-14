@@ -62,6 +62,25 @@ export interface OneLakeIngestResponse {
 }
 
 // ---------------------------------------------------------------------------
+// Shared sample mode types
+// ---------------------------------------------------------------------------
+
+export interface SeedSampleSharedResultItem {
+  fileName: string;
+  fileId: string | null;
+  status: string;
+  fileType?: string;
+  mimeType?: string;
+  isIndexed?: boolean;
+}
+
+export interface SeedSampleSharedResponse {
+  status: 'ready' | 'processing' | 'accepted';
+  results: SeedSampleSharedResultItem[];
+  workspaceId?: string;
+}
+
+// ---------------------------------------------------------------------------
 // Client
 // ---------------------------------------------------------------------------
 
@@ -194,6 +213,51 @@ export class IntuigenceAPIClient {
 
     const res = await fetch(`${this.baseUrl}/api/v2/files/seed-sample`, {
       method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'X-Fabric-Workspace-Id': this.workspaceId,
+      },
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`IntuigenceAI API error ${res.status}: ${text}`);
+    }
+
+    return res.json();
+  }
+
+  /**
+   * Shared sample seeding: triggers processing only if sample files don't
+   * already exist. Subsequent callers get instant results.
+   */
+  async seedSampleDataShared(): Promise<SeedSampleSharedResponse> {
+    const token = await this.authBridge.getWorkloadToken();
+
+    const res = await fetch(`${this.baseUrl}/api/v2/files/seed-sample-shared`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'X-Fabric-Workspace-Id': this.workspaceId,
+      },
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`IntuigenceAI API error ${res.status}: ${text}`);
+    }
+
+    return res.json();
+  }
+
+  /** Poll the current processing state of shared sample files. */
+  async getSampleStatus(): Promise<SeedSampleSharedResponse> {
+    const token = await this.authBridge.getWorkloadToken();
+
+    const res = await fetch(`${this.baseUrl}/api/v2/files/sample-status`, {
+      method: 'GET',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',

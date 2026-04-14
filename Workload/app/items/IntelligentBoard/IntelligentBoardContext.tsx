@@ -15,6 +15,9 @@ export interface IntelligentBoardContextValue {
   addCatalogRef: (ref: CatalogRef) => void;
   removeCatalogRef: (catalogItemId: string) => void;
 
+  // Sample mode
+  isSampleMode: boolean;
+
   // Persistence
   save: () => Promise<void>;
   resetBoardId: () => Promise<void>;

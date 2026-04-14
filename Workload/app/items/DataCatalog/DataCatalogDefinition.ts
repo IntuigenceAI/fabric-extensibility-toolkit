@@ -40,6 +40,8 @@ export interface DataCatalogDefinition {
     tenantId: string | null;
     workspaceId: string | null;
   };
+  isSampleMode?: boolean;
+  sampleWorkspaceId?: string;
 }
 
 export function createEmptyDefinition(name: string): DataCatalogDefinition {
