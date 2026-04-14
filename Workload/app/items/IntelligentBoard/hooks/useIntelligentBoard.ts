@@ -62,51 +62,11 @@ export function useIntelligentBoard(
     return () => { cancelled = true; };
   }, [apiClient, syncWorkspaceId]);
 
-  // Auto-create IntuigenceAI workspace (board) when definition loads without one
-  const resolvedItemId = sync.itemObjectId;
-  useEffect(() => {
-    const def = definition;
-    const alreadyCreating = creatingForItemRef.current === resolvedItemId;
-
-    if (
-      !def ||
-      !apiClient ||
-      !authReady ||
-      !resolvedItemId ||
-      def.intuigenceMapping.workspaceId ||
-      alreadyCreating
-    ) {
-      return;
-    }
-
-    creatingForItemRef.current = resolvedItemId;
-
-    (async () => {
-      try {
-        const ws = await apiClient.createWorkspace(def.name || 'Intelligent Board');
-        // Use the ref to get the latest definition (may have been updated by addCatalogRef)
-        const latestDef = definitionRef.current;
-        if (!latestDef) return;
-        const updatedDef: IntelligentBoardDefinition = {
-          ...latestDef,
-          intuigenceMapping: {
-            ...latestDef.intuigenceMapping,
-            workspaceId: ws.id,
-          },
-        };
-        await saveDefinition(updatedDef);
-      } catch (err) {
-        console.error('[useIntelligentBoard] Workspace creation failed:', err);
-        creatingForItemRef.current = null; // Allow retry
-      }
-    })();
-  }, [definition, apiClient, authReady, resolvedItemId, saveDefinition]);
-
-  const boardId = definition?.intuigenceMapping.workspaceId ?? null;
-
-  // Read connected DataCatalog definitions to extract allowed document IDs.
+  // Read connected DataCatalog definitions to extract allowed document IDs
+  // and detect sample mode.
   // Use a serialized key to avoid re-fetching when definition saves but catalogRefs haven't changed.
   const [catalogDocumentIds, setCatalogDocumentIds] = useState<string[]>([]);
+  const [sampleWorkspaceId, setSampleWorkspaceId] = useState<string | null>(null);
   const catalogRefsKey = useMemo(
     () => JSON.stringify(definition?.dataCatalogRefs ?? []),
     [definition?.dataCatalogRefs],
@@ -116,6 +76,7 @@ export function useIntelligentBoard(
   useEffect(() => {
     if (!catalogRefs?.length) {
       setCatalogDocumentIds([]);
+      setSampleWorkspaceId(null);
       return undefined;
     }
 
@@ -123,6 +84,7 @@ export function useIntelligentBoard(
     (async () => {
       const storageClient = new OneLakeStorageClient(workloadClient);
       const allDocIds: string[] = [];
+      let detectedSampleWorkspaceId: string | null = null;
 
       for (const ref of catalogRefs) {
         try {
@@ -132,14 +94,16 @@ export function useIntelligentBoard(
             'Files/.metadata/definition.json',
           );
           const content = await storageClient.readFileAsText(filePath);
-          if (!content) continue; // Empty/missing file — skip
+          if (!content) continue;
           const catalogDef = JSON.parse(content) as DataCatalogDefinition;
+
+          if (catalogDef.isSampleMode && catalogDef.sampleWorkspaceId) {
+            detectedSampleWorkspaceId = catalogDef.sampleWorkspaceId;
+          }
 
           for (const doc of catalogDef.documents) {
             if (doc.processingStatus === 'success' && doc.intuigenceDocumentId) {
               allDocIds.push(doc.intuigenceDocumentId);
-              // Also include graph document ID for P&ID entries so graph docs
-              // pass the allowedDocumentIds filter on the board
               if (doc.intuigenceGraphId) {
                 allDocIds.push(doc.intuigenceGraphId);
               }
@@ -152,12 +116,57 @@ export function useIntelligentBoard(
 
       if (!cancelled) {
         setCatalogDocumentIds(allDocIds);
+        setSampleWorkspaceId(detectedSampleWorkspaceId);
       }
     })();
 
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [catalogRefsKey, workloadClient]);
+
+  const isSampleMode = !!sampleWorkspaceId;
+  const boardId = sampleWorkspaceId ?? definition?.intuigenceMapping.workspaceId ?? null;
+
+  // Auto-create IntuigenceAI workspace (board) when definition loads without one.
+  // Skip when in sample mode — the sample workspace is shared, not created per-board.
+  const resolvedItemId = sync.itemObjectId;
+  useEffect(() => {
+    const def = definition;
+    const alreadyCreating = creatingForItemRef.current === resolvedItemId;
+
+    if (
+      !def ||
+      !apiClient ||
+      !authReady ||
+      !resolvedItemId ||
+      def.intuigenceMapping.workspaceId ||
+      alreadyCreating ||
+      sampleWorkspaceId
+    ) {
+      return;
+    }
+
+    creatingForItemRef.current = resolvedItemId;
+
+    (async () => {
+      try {
+        const ws = await apiClient.createWorkspace(def.name || 'Intelligent Board');
+        const latestDef = definitionRef.current;
+        if (!latestDef) return;
+        const updatedDef: IntelligentBoardDefinition = {
+          ...latestDef,
+          intuigenceMapping: {
+            ...latestDef.intuigenceMapping,
+            workspaceId: ws.id,
+          },
+        };
+        await saveDefinition(updatedDef);
+      } catch (err) {
+        console.error('[useIntelligentBoard] Workspace creation failed:', err);
+        creatingForItemRef.current = null;
+      }
+    })();
+  }, [definition, apiClient, authReady, resolvedItemId, saveDefinition, sampleWorkspaceId]);
 
   const addCatalogRef = useCallback((ref: CatalogRef) => {
     const def = definitionRef.current;
@@ -224,6 +233,7 @@ export function useIntelligentBoard(
     authError,
     addCatalogRef,
     removeCatalogRef,
+    isSampleMode,
     save,
     resetBoardId,
     boardSaveRef,

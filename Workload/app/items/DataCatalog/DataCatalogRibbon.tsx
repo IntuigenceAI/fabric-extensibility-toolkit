@@ -8,10 +8,21 @@ interface DataCatalogRibbonProps {
   saving: boolean;
   onAddData: () => void;
   quota?: { used: number; limit: number; remaining: number } | null;
+  isSampleMode?: boolean;
 }
 
-export function DataCatalogRibbon({ viewContext, onSave, saving, onAddData, quota }: DataCatalogRibbonProps) {
+export function DataCatalogRibbon({ viewContext, onSave, saving, onAddData, quota, isSampleMode }: DataCatalogRibbonProps) {
   const saveAction = createSaveAction(onSave, saving, saving ? 'Saving...' : undefined);
+
+  if (isSampleMode) {
+    return (
+      <Ribbon
+        homeToolbarActions={[saveAction]}
+        viewContext={viewContext}
+      />
+    );
+  }
+
   const isQuotaFull = quota ? quota.remaining === 0 : false;
 
   const addDataAction: RibbonAction = {

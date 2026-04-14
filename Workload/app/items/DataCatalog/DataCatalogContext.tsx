@@ -26,6 +26,10 @@ export interface DataCatalogContextValue {
   removeActiveFile: (localId: string) => void;
   clearCompletedFiles: () => void;
 
+  // Sample mode
+  isSampleMode: boolean;
+  sampleWorkspaceId: string | null;
+
   // Quota
   quota: { used: number; limit: number; remaining: number } | null;
   refreshQuota: () => Promise<void>;

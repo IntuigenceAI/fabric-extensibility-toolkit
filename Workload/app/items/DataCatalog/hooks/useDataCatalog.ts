@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { WorkloadClientAPI } from '@ms-fabric/workload-client';
-import { IntuigenceAPIClient } from '../../../clients/IntuigenceAPIClient';
+import { IntuigenceAPIClient, SeedSampleSharedResponse } from '../../../clients/IntuigenceAPIClient';
 import { CatalogDocumentEntry, CatalogDocumentType, recomputeStats } from '../DataCatalogDefinition';
 import { useOneLakeSync } from './useOneLakeSync';
 import { useDocumentProcessing } from './useDocumentProcessing';
@@ -246,33 +246,85 @@ export function useDataCatalog(
     processing.ingestFromOneLake(files, docType);
   }, [processing]);
 
+  // Populate definition.documents from a shared sample response whose files are all ready
+  const populateSampleDocs = useCallback((response: SeedSampleSharedResponse) => {
+    const currentDef = definitionRef.current;
+    if (!currentDef) return;
+
+    const now = new Date().toISOString();
+    const docs: CatalogDocumentEntry[] = response.results
+      .filter((r) => r.fileId)
+      .map((r): CatalogDocumentEntry => ({
+        id: r.fileId!,
+        fileName: r.fileName,
+        mimeType: r.mimeType || 'application/octet-stream',
+        sizeBytes: 0,
+        sourceType: 'sample',
+        processingStatus: r.isIndexed ? 'success' : 'processing',
+        documentType: (r.fileType === 'pnid' ? 'pnid' : r.fileType === 'timeseries' ? 'timeseries' : 'document') as CatalogDocumentType,
+        intuigenceDocumentId: r.fileId!,
+        intuigenceFileId: r.fileId!,
+        errorMessage: null,
+        lastUpdated: now,
+        createdAt: now,
+        addedBy: 'Sample Data',
+      }));
+
+    const updatedDef = recomputeStats({
+      ...currentDef,
+      documents: docs,
+      isSampleMode: true,
+      sampleWorkspaceId: response.workspaceId,
+    });
+    definitionRef.current = updatedDef;
+    saveDefinitionRef.current(updatedDef).catch((err) => {
+      console.error('[useDataCatalog] Sample mode save failed:', err);
+    });
+  }, []);
+
   const seedSampleData = useCallback(async () => {
     if (!apiClient) throw new Error('API client not ready');
-    const response = await apiClient.seedSampleData();
+    const response = await apiClient.seedSampleDataShared();
 
-    const accepted = response.results.filter(r => r.status === 'accepted' && r.fileId);
-    const failed = response.results.filter(r => r.status === 'failed');
-
-    if (failed.length > 0) {
-      console.warn('[useDataCatalog] Some sample files failed:', failed.map(f => `${f.fileName}: ${f.error}`));
+    if (response.status === 'ready') {
+      populateSampleDocs(response);
+      return response.results.length;
     }
 
-    if (accepted.length === 0) {
-      throw new Error(failed[0]?.error || 'No sample files were accepted');
+    // Processing or just accepted — poll until ready
+    if (response.status === 'accepted') {
+      // For 'accepted', also track files for live status in the UI
+      for (const r of response.results.filter((r) => r.fileId && r.status === 'accepted')) {
+        processing.trackSeedFile(
+          r.fileId!,
+          r.fileName,
+          r.mimeType || 'application/octet-stream',
+          r.fileType || 'document',
+        );
+      }
     }
 
-    // Track accepted files for status polling — use backend-provided fileType/mimeType
-    for (const result of accepted) {
-      processing.trackSeedFile(
-        result.fileId!,
-        result.fileName,
-        result.mimeType || 'application/octet-stream',
-        result.fileType || 'document',
-      );
+    // Poll until all files are ready
+    const poll = async (): Promise<number> => {
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      const status = await apiClient.getSampleStatus();
+      if (status.status === 'ready') {
+        populateSampleDocs(status);
+        return status.results.length;
+      }
+      return poll();
+    };
+
+    // Mark sample mode on the definition immediately so the UI can show indicators
+    const currentDef = definitionRef.current;
+    if (currentDef) {
+      const updatedDef = { ...currentDef, isSampleMode: true, sampleWorkspaceId: response.workspaceId };
+      definitionRef.current = updatedDef;
+      saveDefinitionRef.current(updatedDef).catch(() => {});
     }
 
-    return accepted.length;
-  }, [apiClient, processing]);
+    return poll();
+  }, [apiClient, processing, populateSampleDocs]);
 
   const removeDocument = useCallback(async (ids: string[]) => {
     const currentDef = definitionRef.current;
@@ -328,6 +380,9 @@ export function useDataCatalog(
     await sync.saveDefinition(updated);
   }, [sync]);
 
+  const isSampleMode = sync.definition?.isSampleMode ?? false;
+  const sampleWorkspaceId = sync.definition?.sampleWorkspaceId ?? null;
+
   return {
     definition: sync.definition,
     loading: sync.loading,
@@ -340,6 +395,8 @@ export function useDataCatalog(
     activeFiles: processing.activeFiles,
     removeActiveFile: processing.removeFile,
     clearCompletedFiles: processing.clearCompleted,
+    isSampleMode,
+    sampleWorkspaceId,
     quota,
     refreshQuota,
     selectedDocumentId,
