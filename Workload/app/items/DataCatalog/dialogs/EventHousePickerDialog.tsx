@@ -80,7 +80,7 @@ const useStyles = makeStyles({
   },
   previewTable: {
     width: '100%',
-    ...shorthands.borderCollapse('collapse'),
+    borderCollapse: 'collapse',
     fontSize: tokens.fontSizeBase200,
   },
   previewWrapper: {
