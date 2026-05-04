@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { WorkloadClientAPI } from '@ms-fabric/workload-client';
 import { IntuigenceAPIClient, SeedSampleSharedResponse } from '../../../clients/IntuigenceAPIClient';
-import { CatalogDocumentEntry, CatalogDocumentType, recomputeStats } from '../DataCatalogDefinition';
+import { CatalogDocumentEntry, CatalogDocumentType, EventHouseSourceConfig, recomputeStats } from '../DataCatalogDefinition';
 import { useOneLakeSync } from './useOneLakeSync';
 import { useDocumentProcessing } from './useDocumentProcessing';
 import { DataCatalogContextValue, OneLakeFileSelection } from '../DataCatalogContext';
@@ -246,6 +246,41 @@ export function useDataCatalog(
     processing.ingestFromOneLake(files, docType);
   }, [processing]);
 
+  const ingestFromEventHouse = useCallback((config: EventHouseSourceConfig) => {
+    processing.ingestFromEventHouse(config, workloadClient);
+
+    // Save EventHouse source config in definition
+    const currentDef = definitionRef.current;
+    if (currentDef) {
+      const updatedDef = {
+        ...currentDef,
+        eventhouseSource: { ...config, lastSyncedAt: new Date().toISOString() },
+      };
+      definitionRef.current = updatedDef;
+      saveDefinitionRef.current(updatedDef).catch((err) => {
+        console.error('[useDataCatalog] Failed to save EventHouse config:', err);
+      });
+    }
+  }, [processing, workloadClient]);
+
+  const syncEventHouse = useCallback(async () => {
+    const currentDef = definitionRef.current;
+    if (!currentDef?.eventhouseSource) return;
+
+    const config = currentDef.eventhouseSource;
+    processing.ingestFromEventHouse(config, workloadClient);
+
+    // Update lastSyncedAt
+    const updatedDef = {
+      ...currentDef,
+      eventhouseSource: { ...config, lastSyncedAt: new Date().toISOString() },
+    };
+    definitionRef.current = updatedDef;
+    await saveDefinitionRef.current(updatedDef).catch((err) => {
+      console.error('[useDataCatalog] Failed to update sync timestamp:', err);
+    });
+  }, [processing, workloadClient]);
+
   // Populate definition.documents from a shared sample response whose files are all ready
   const populateSampleDocs = useCallback((response: SeedSampleSharedResponse) => {
     const currentDef = definitionRef.current;
@@ -390,6 +425,8 @@ export function useDataCatalog(
     saving: sync.saving,
     authReady,
     ingestFromOneLake,
+    ingestFromEventHouse,
+    syncEventHouse,
     seedSampleData,
     removeDocument,
     activeFiles: processing.activeFiles,

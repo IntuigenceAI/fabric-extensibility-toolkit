@@ -52,6 +52,8 @@ import {
   ChevronRight20Regular,
   Info16Regular,
   Warning16Regular,
+  ArrowSync20Regular,
+  Database20Regular,
 } from '@fluentui/react-icons';
 import { useViewNavigation } from '../../../components/ItemEditor';
 import { useDataCatalogContext } from '../DataCatalogContext';
@@ -190,6 +192,25 @@ const useStyles = makeStyles({
     alignItems: 'center',
     ...shorthands.gap('8px'),
   },
+  eventhouseBar: {
+    display: 'flex',
+    alignItems: 'center',
+    ...shorthands.gap('12px'),
+    ...shorthands.padding('8px', '24px'),
+    ...shorthands.margin('0', '24px', '8px'),
+    backgroundColor: tokens.colorNeutralBackground3,
+    ...shorthands.borderRadius(tokens.borderRadiusMedium),
+  },
+  eventhouseInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    ...shorthands.gap('6px'),
+    flexGrow: 1,
+  },
+  eventhouseMeta: {
+    color: tokens.colorNeutralForeground3,
+    fontSize: tokens.fontSizeBase200,
+  },
 });
 
 // ---------------------------------------------------------------------------
@@ -272,6 +293,20 @@ export function MainView({ onAddData }: MainViewProps) {
   const styles = useStyles();
   const catalog = useDataCatalogContext();
   const { setCurrentView } = useViewNavigation();
+  const [syncing, setSyncing] = useState(false);
+
+  const eventhouseSource = catalog.definition?.eventhouseSource;
+
+  const handleSyncNow = useCallback(async () => {
+    setSyncing(true);
+    try {
+      await catalog.syncEventHouse();
+    } catch (err: any) {
+      console.error('[MainView] Sync failed:', err);
+    } finally {
+      setSyncing(false);
+    }
+  }, [catalog]);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -634,6 +669,35 @@ export function MainView({ onAddData }: MainViewProps) {
           </div>
         )}
       </div>
+
+      {/* EventHouse connection info */}
+      {eventhouseSource && (
+        <div className={styles.eventhouseBar}>
+          <Database20Regular />
+          <div className={styles.eventhouseInfo}>
+            <Text size={200} weight="semibold">
+              {eventhouseSource.eventhouseName}
+            </Text>
+            <Text size={200} className={styles.eventhouseMeta}>
+              {eventhouseSource.databaseName} / {eventhouseSource.tableName}
+            </Text>
+            {eventhouseSource.lastSyncedAt && (
+              <Text size={200} className={styles.eventhouseMeta}>
+                Last synced: {formatDateTime(eventhouseSource.lastSyncedAt)}
+              </Text>
+            )}
+          </div>
+          <Button
+            appearance="subtle"
+            size="small"
+            icon={syncing ? <Spinner size="tiny" /> : <ArrowSync20Regular />}
+            onClick={handleSyncNow}
+            disabled={syncing}
+          >
+            {syncing ? 'Syncing...' : 'Sync Now'}
+          </Button>
+        </div>
+      )}
 
       {/* DataGrid */}
       <div className={`${styles.gridWrapper} datacatalog-grid`}>
