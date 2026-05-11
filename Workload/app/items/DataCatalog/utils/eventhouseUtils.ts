@@ -90,31 +90,26 @@ async function executeKql(
   databaseName: string,
   kql: string,
   endpoint: 'mgmt' | 'query',
-): Promise<unknown | null> {
-  try {
-    const scope = `${queryServiceUri}/.default`;
-    const accessToken: AccessToken = await acquireKustoToken(workloadClient, scope);
+): Promise<unknown> {
+  const scope = `${queryServiceUri}/.default`;
+  const accessToken: AccessToken = await acquireKustoToken(workloadClient, scope);
 
-    const response = await fetch(`${queryServiceUri}/v1/rest/${endpoint}`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken.token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ db: databaseName, csl: kql }),
-    });
+  const response = await fetch(`${queryServiceUri}/v1/rest/${endpoint}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken.token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ db: databaseName, csl: kql }),
+  });
 
-    if (!response.ok) {
-      const errorMessage = await response.text();
-      console.error(`[eventhouseUtils] KQL ${endpoint} failed: ${errorMessage}`);
-      return null;
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('[eventhouseUtils] KQL error:', error);
-    return null;
+  if (!response.ok) {
+    const errorMessage = await response.text();
+    console.error(`[eventhouseUtils] KQL ${endpoint} failed: ${errorMessage}`);
+    throw new Error(`Kusto ${endpoint} failed (${response.status}): ${errorMessage}`);
   }
+
+  return await response.json();
 }
 
 // -------------------------------------------------------------------------
@@ -136,7 +131,6 @@ export async function getTableList(
     '.show tables',
     'mgmt',
   );
-  if (!result) return [];
 
   const dataTable = findDataTable(result);
   if (!dataTable) return [];
@@ -168,7 +162,6 @@ export async function getTableRowCount(
     `['${escapeKqlIdentifier(tableName)}'] | count`,
     'query',
   );
-  if (!result) return 0;
 
   const dataTable = findDataTable(result);
   if (!dataTable) return 0;
@@ -179,20 +172,25 @@ export async function getTableRowCount(
 
 /**
  * Query data from a table with an optional row limit.
- * Defaults to 50 000 rows to stay within the Kusto 64 MB result-set cap.
+ *
+ * Defaults to 500,000 rows — Kusto's `truncationmaxrecords` default. For very
+ * wide rows the 64 MB byte cap may still truncate below this. Rows are sorted
+ * by `ingestion_time()` desc so that when truncation happens, the most-recent
+ * data is preserved. This makes each refresh deterministic and biased toward
+ * fresh data, which is the right semantics for timeseries.
  */
 export async function queryTableData(
   workloadClient: WorkloadClientAPI,
   queryServiceUri: string,
   databaseName: string,
   tableName: string,
-  limit = 50_000,
+  limit = 500_000,
 ): Promise<unknown> {
   return executeKql(
     workloadClient,
     queryServiceUri,
     databaseName,
-    `['${escapeKqlIdentifier(tableName)}'] | take ${limit}`,
+    `['${escapeKqlIdentifier(tableName)}'] | sort by ingestion_time() desc | take ${limit}`,
     'query',
   );
 }

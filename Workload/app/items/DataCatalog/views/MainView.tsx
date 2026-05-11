@@ -296,17 +296,36 @@ export function MainView({ onAddData }: MainViewProps) {
   const [syncing, setSyncing] = useState(false);
 
   const eventhouseSource = catalog.definition?.eventhouseSource;
+  const ehInFlight = catalog.activeFiles.some(
+    f => f.sourceType === 'eventhouse' && (f.status === 'uploading' || f.status === 'processing'),
+  );
+
+  const toasterId = useId('mainview-toaster');
+  const { dispatchToast } = useToastController(toasterId);
 
   const handleSyncNow = useCallback(async () => {
     setSyncing(true);
     try {
       await catalog.syncEventHouse();
+      dispatchToast(
+        <Toast>
+          <ToastTitle>Sync started</ToastTitle>
+        </Toast>,
+        { intent: 'success', timeout: 3000 },
+      );
     } catch (err: any) {
       console.error('[MainView] Sync failed:', err);
+      dispatchToast(
+        <Toast>
+          <ToastTitle>Sync failed</ToastTitle>
+          <ToastBody>{err.message || 'Something went wrong'}</ToastBody>
+        </Toast>,
+        { intent: 'error', timeout: 6000 },
+      );
     } finally {
       setSyncing(false);
     }
-  }, [catalog]);
+  }, [catalog, dispatchToast]);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -325,9 +344,6 @@ export function MainView({ onAddData }: MainViewProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
-
-  const toasterId = useId('mainview-toaster');
-  const { dispatchToast } = useToastController(toasterId);
 
   const isQuotaFull = catalog.quota !== null && catalog.quota.remaining <= 0;
   const documents = catalog.definition?.documents || [];
@@ -681,9 +697,9 @@ export function MainView({ onAddData }: MainViewProps) {
             <Text size={200} className={styles.eventhouseMeta}>
               {eventhouseSource.databaseName} / {eventhouseSource.tableName}
             </Text>
-            {eventhouseSource.lastSyncedAt && (
+            {eventhouseSource.lastFullRefreshAt && (
               <Text size={200} className={styles.eventhouseMeta}>
-                Last synced: {formatDateTime(eventhouseSource.lastSyncedAt)}
+                Last full refresh: {formatDateTime(eventhouseSource.lastFullRefreshAt)}
               </Text>
             )}
           </div>
@@ -692,7 +708,7 @@ export function MainView({ onAddData }: MainViewProps) {
             size="small"
             icon={syncing ? <Spinner size="tiny" /> : <ArrowSync20Regular />}
             onClick={handleSyncNow}
-            disabled={syncing}
+            disabled={syncing || ehInFlight}
           >
             {syncing ? 'Syncing...' : 'Sync Now'}
           </Button>

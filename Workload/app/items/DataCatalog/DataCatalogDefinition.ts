@@ -12,7 +12,7 @@ export interface EventHouseSourceConfig {
   queryServiceUri: string;
   lakehouseWorkspaceId: string;
   lakehouseItemId: string;
-  lastSyncedAt: string | null;
+  lastFullRefreshAt: string | null;
 }
 
 export interface CatalogDocumentEntry {

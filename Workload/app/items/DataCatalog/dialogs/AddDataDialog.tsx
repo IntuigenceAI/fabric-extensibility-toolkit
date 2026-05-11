@@ -119,7 +119,7 @@ export function AddDataDialog({ onClose, onFilesSubmitted }: AddDataDialogProps)
   }, []);
 
   const handleEventHouseConnect = useCallback(async (
-    config: Omit<EventHouseSourceConfig, 'lakehouseWorkspaceId' | 'lakehouseItemId' | 'lastSyncedAt'>
+    config: Omit<EventHouseSourceConfig, 'lakehouseWorkspaceId' | 'lakehouseItemId' | 'lastFullRefreshAt'>
   ) => {
     setShowEventHousePicker(false);
 
@@ -146,7 +146,7 @@ export function AddDataDialog({ onClose, onFilesSubmitted }: AddDataDialogProps)
       ...config,
       lakehouseWorkspaceId: lh.workspaceId,
       lakehouseItemId: lh.id,
-      lastSyncedAt: null,
+      lastFullRefreshAt: null,
     };
 
     catalog.ingestFromEventHouse(fullConfig);

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   Button,
   Combobox,
@@ -123,7 +123,7 @@ const useStyles = makeStyles({
   },
 });
 
-type PartialConfig = Omit<EventHouseSourceConfig, 'lakehouseWorkspaceId' | 'lakehouseItemId' | 'lastSyncedAt'>;
+type PartialConfig = Omit<EventHouseSourceConfig, 'lakehouseWorkspaceId' | 'lakehouseItemId' | 'lastFullRefreshAt'>;
 
 interface EventHousePickerDialogProps {
   workloadClient: WorkloadClientAPI;
@@ -160,6 +160,45 @@ export function EventHousePickerDialog({
   // General
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // ---- A11y: ref + Escape + autofocus + focus trap ----
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCancel();
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [onCancel]);
+
+  useEffect(() => {
+    dialogRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const container = dialogRef.current;
+    if (!container) return undefined;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      const focusables = container.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    container.addEventListener('keydown', handleKey);
+    return () => container.removeEventListener('keydown', handleKey);
+  }, []);
 
   const handlePickEventhouse = useCallback(async () => {
     setLoading(true);
@@ -282,10 +321,17 @@ export function EventHousePickerDialog({
 
   return (
     <div className={styles.overlay} onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className={styles.dialog}>
+      <div
+        ref={dialogRef}
+        className={styles.dialog}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="eh-picker-title"
+        tabIndex={-1}
+      >
         {/* Header */}
         <div className={styles.header}>
-          <Text size={500} weight="semibold">Connect to EventHouse</Text>
+          <Text id="eh-picker-title" size={500} weight="semibold">Connect to EventHouse</Text>
           <Button appearance="subtle" icon={<Dismiss24Regular />} onClick={onCancel} aria-label="Close" />
         </div>
 
@@ -370,10 +416,10 @@ export function EventHousePickerDialog({
               <Text className={styles.label}>
                 Preview {rowCount != null && `(${rowCount.toLocaleString()} rows)`}
               </Text>
-              {rowCount != null && rowCount > 5_000_000 && (
+              {rowCount != null && rowCount > 500_000 && (
                 <MessageBar intent="warning">
                   <MessageBarBody>
-                    This table has over 5 million rows. Ingestion may take significant time and memory.
+                    This table has over 500,000 rows. Only the 500,000 most recent rows (by ingestion time) will be ingested. The remainder will be skipped.
                   </MessageBarBody>
                 </MessageBar>
               )}

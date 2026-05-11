@@ -22,7 +22,11 @@ export interface ProcessingFile {
 
 export interface UseDocumentProcessingResult {
   ingestFromOneLake: (files: OneLakeFileSelection[], docType?: string) => void;
-  ingestFromEventHouse: (config: EventHouseSourceConfig, workloadClient: WorkloadClientAPI) => void;
+  ingestFromEventHouse: (
+    config: EventHouseSourceConfig,
+    workloadClient: WorkloadClientAPI,
+    onIngestAccepted?: () => void,
+  ) => void;
   trackSeedFile: (fileId: string, fileName: string, mimeType: string, docType: string) => void;
   activeFiles: ProcessingFile[];
   removeFile: (localId: string) => void;
@@ -290,7 +294,11 @@ export function useDocumentProcessing(
     })();
   }, [apiClient, updateFile, startPolling]);
 
-  const ingestFromEventHouse = useCallback((config: EventHouseSourceConfig, workloadClient: WorkloadClientAPI) => {
+  const ingestFromEventHouse = useCallback((
+    config: EventHouseSourceConfig,
+    workloadClient: WorkloadClientAPI,
+    onIngestAccepted?: () => void,
+  ) => {
     if (!apiClient) return;
 
     const fileName = `${config.tableName}.csv`;
@@ -317,21 +325,16 @@ export function useDocumentProcessing(
           config.tableName,
         );
 
-        if (!kqlResult) {
-          updateFile(localId, { status: 'failed', error: 'No data returned from EventHouse' });
-          return;
-        }
-
         // 2. Convert to CSV
         const csvString = kqlResultToCsvString(kqlResult);
         if (!csvString) {
-          updateFile(localId, { status: 'failed', error: 'Failed to convert EventHouse data to CSV' });
+          updateFile(localId, { status: 'failed', error: 'EventHouse returned no rows' });
           return;
         }
 
         // 3. Write CSV to Lakehouse staging path
         const storageClient = new OneLakeStorageClient(workloadClient);
-        const stagingPath = `.eventhouse-staging/${config.tableName}_${Date.now()}.csv`;
+        const stagingPath = `.eventhouse-staging/${config.tableName}.csv`;
         const filePath = OneLakeStorageClient.getFilePath(
           config.lakehouseWorkspaceId,
           config.lakehouseItemId,
@@ -375,6 +378,7 @@ export function useDocumentProcessing(
           });
 
           startPolling(localId, result.fileId, fileName, mimeType, 'timeseries');
+          onIngestAccepted?.();
         } else {
           updateFile(localId, { status: 'failed', error: result?.error || 'Server rejected file' });
         }
