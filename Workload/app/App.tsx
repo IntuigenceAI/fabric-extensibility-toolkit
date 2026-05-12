@@ -5,7 +5,6 @@ import { WorkloadClientAPI } from "@ms-fabric/workload-client";
 import { OneLakeCatalog } from "./items/IntuigenceApp/OneLakeCatalog";
 import { DataCatalogEditor } from "./items/DataCatalog";
 import { IntelligentBoardEditor } from "./items/IntelligentBoard";
-import { ConsentGate } from "./items/shared/ConsentGate";
 import { ConditionalPlaygroundRoutes } from "./playground/ConditionalPlaygroundRoutes";
 
 /*
@@ -56,16 +55,12 @@ export function App({ history, workloadClient }: AppProps) {
 
             {/* Routings for the DataCatalog Editor */}
             <Route path="/DataCatalogItem-editor/:itemObjectId?">
-                <ConsentGate workloadClient={workloadClient}>
-                    <DataCatalogEditor workloadClient={workloadClient} />
-                </ConsentGate>
+                <DataCatalogEditor workloadClient={workloadClient} />
             </Route>
 
             {/* Routings for the IntelligentBoard Editor */}
             <Route path="/IntelligentBoardItem-editor/:itemObjectId?">
-                <ConsentGate workloadClient={workloadClient}>
-                    <IntelligentBoardEditor workloadClient={workloadClient} />
-                </ConsentGate>
+                <IntelligentBoardEditor workloadClient={workloadClient} />
             </Route>
 
             {/* Conditionally loaded playground routes (only in development) */}
