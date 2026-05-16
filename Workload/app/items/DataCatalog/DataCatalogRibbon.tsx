@@ -1,23 +1,25 @@
 import React from 'react';
 import { Add24Regular } from '@fluentui/react-icons';
-import { Ribbon, ViewContext, createSaveAction, RibbonAction } from '../../components/ItemEditor';
+import { WorkloadClientAPI } from '@ms-fabric/workload-client';
+import { Ribbon, ViewContext, createItemSettingsAction, createHelpAction, RibbonAction } from '../../components/ItemEditor';
 
 interface DataCatalogRibbonProps {
   viewContext: ViewContext;
-  onSave: () => void;
-  saving: boolean;
   onAddData: () => void;
   quota?: { used: number; limit: number; remaining: number } | null;
   isSampleMode?: boolean;
+  workloadClient: WorkloadClientAPI;
+  itemObjectId?: string;
 }
 
-export function DataCatalogRibbon({ viewContext, onSave, saving, onAddData, quota, isSampleMode }: DataCatalogRibbonProps) {
-  const saveAction = createSaveAction(onSave, saving, saving ? 'Saving...' : undefined);
+export function DataCatalogRibbon({ viewContext, onAddData, quota, isSampleMode, workloadClient, itemObjectId }: DataCatalogRibbonProps) {
+  const settingsAction = createItemSettingsAction(workloadClient, itemObjectId);
+  const helpAction = createHelpAction();
 
   if (isSampleMode) {
     return (
       <Ribbon
-        homeToolbarActions={[saveAction]}
+        homeToolbarActions={[settingsAction, helpAction]}
         viewContext={viewContext}
       />
     );
@@ -39,7 +41,7 @@ export function DataCatalogRibbon({ viewContext, onSave, saving, onAddData, quot
 
   return (
     <Ribbon
-      homeToolbarActions={[saveAction, addDataAction]}
+      homeToolbarActions={[settingsAction, helpAction, addDataAction]}
       viewContext={viewContext}
     />
   );

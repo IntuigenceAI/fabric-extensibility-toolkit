@@ -19,13 +19,6 @@ export function IntelligentBoardEditor({
   const { itemObjectId } = useParams<{ itemObjectId?: string }>();
   const board = useIntelligentBoard(workloadClient, itemObjectId);
 
-  const handleSave = useCallback(async () => {
-    // Trigger iframe save via PostMessage (if BoardView is mounted)
-    board.boardSaveRef.current?.();
-    // Persist definition to OneLake
-    await board.save();
-  }, [board.boardSaveRef, board.save]);
-
   const views: RegisteredView[] = useMemo(
     () => [
       {
@@ -65,8 +58,8 @@ export function IntelligentBoardEditor({
         ribbon={(ctx) => (
           <IntelligentBoardRibbon
             viewContext={ctx}
-            onSave={handleSave}
-            saving={board.saving}
+            workloadClient={workloadClient}
+            itemObjectId={itemObjectId}
           />
         )}
         views={views}

@@ -18,6 +18,9 @@ export async function initialize(params: InitParams) {
     const history = createBrowserHistory();
     console.log('✅ Browser history created successfully');
     
+    // Register onClose handler for Fabric settings pane so it can be reopened after closing
+    workloadClient.itemSettings.onClose(() => {});
+
     workloadClient.navigation.onNavigate((route) => {
         console.log('🧭 Navigation event:', route);
         history.replace(route.targetUrl);

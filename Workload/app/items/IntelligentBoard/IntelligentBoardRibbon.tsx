@@ -1,22 +1,24 @@
 import React from 'react';
-import { Ribbon, ViewContext, createSaveAction } from '../../components/ItemEditor';
+import { WorkloadClientAPI } from '@ms-fabric/workload-client';
+import { Ribbon, ViewContext, createItemSettingsAction, createHelpAction } from '../../components/ItemEditor';
 
 interface IntelligentBoardRibbonProps {
   viewContext: ViewContext;
-  onSave: () => void;
-  saving: boolean;
+  workloadClient: WorkloadClientAPI;
+  itemObjectId?: string;
 }
 
 export function IntelligentBoardRibbon({
   viewContext,
-  onSave,
-  saving,
+  workloadClient,
+  itemObjectId,
 }: IntelligentBoardRibbonProps) {
-  const saveAction = createSaveAction(onSave, saving, saving ? 'Saving...' : undefined);
+  const settingsAction = createItemSettingsAction(workloadClient, itemObjectId);
+  const helpAction = createHelpAction(undefined, false);
 
   return (
     <Ribbon
-      homeToolbarActions={[saveAction]}
+      homeToolbarActions={[settingsAction, helpAction]}
       viewContext={viewContext}
     />
   );

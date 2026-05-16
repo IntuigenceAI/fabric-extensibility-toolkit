@@ -44,10 +44,12 @@ export type { RibbonToolbarActionProps, FluentIconComponent } from './RibbonTool
 export { RibbonActionButtonImpl } from './RibbonActionButton';
 export type { RibbonActionButtonImplProps, RibbonActionButton, DropdownMenuItem } from './RibbonActionButton';
 
-export { 
+export {
   createSaveAction,
   createSettingsAction,
-  createAboutAction
+  createAboutAction,
+  createItemSettingsAction,
+  createHelpAction,
 } from './RibbonStandardActions';
 
 // Re-export contexts for consumers who need them
