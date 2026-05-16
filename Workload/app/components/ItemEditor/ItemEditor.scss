@@ -77,13 +77,18 @@
     z-index: 1; // Keep notification above content during scroll
   }
 
-  // Content Area - Fills remaining space and scrolls independently
+  // Content Area - Canvas container that fills remaining space and scrolls independently
+  // Follows Fabric UX canvas requirements (Section 4 of publishing-requirements-item):
+  // white background, rounded corners, elevation shadow, distinct from page background
   &__content {
     flex: 1; // Take all remaining space
     overflow-y: auto; // Allow vertical scrolling
     overflow-x: hidden; // Prevent horizontal scroll
-    padding: 0px var(--spacingHorizontalS, 8px) var(--spacingVerticalS, 8px) var(--spacingHorizontalS, 8px);
-    background: var(--colorNeutralBackground3);
+    margin: 0 var(--spacingHorizontalS, 8px) var(--spacingVerticalS, 8px) var(--spacingHorizontalS, 8px);
+    padding: 0;
+    background: var(--colorNeutralBackground1, #ffffff);
+    border-radius: var(--borderRadiusXLarge, 8px);
+    box-shadow: var(--shadow4, 0 0 2px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.14));
 
     // Custom scrollbar styling - Fabric UX guideline
     &::-webkit-scrollbar {
@@ -925,9 +930,9 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100vh;
+  height: 100%;
   gap: var(--spacingVerticalXL);
-  background-color: var(--colorNeutralBackground2);
+  background-color: transparent; // Inherits canvas white background
 }
 
 .item-editor-loading-icon {
