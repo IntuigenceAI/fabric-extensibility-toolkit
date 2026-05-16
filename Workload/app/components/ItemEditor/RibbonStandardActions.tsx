@@ -2,9 +2,13 @@ import {
   Save24Regular,
   Settings24Regular,
   Info24Regular,
-  Share24Regular
+  Share24Regular,
+  QuestionCircle24Regular,
 } from "@fluentui/react-icons";
 import { useTranslation } from "react-i18next";
+import { WorkloadClientAPI } from '@ms-fabric/workload-client';
+import { callGetItem } from '../../controller/ItemCRUDController';
+import { callOpenSettings } from '../../controller/SettingsController';
 import { RibbonAction, RibbonDropdownAction, DropdownMenuItem } from './RibbonToolbar';
 
 // Re-export types for convenience
@@ -129,7 +133,7 @@ export const createExportDropdownAction = (
   showDividerAfter: boolean = false
 ): RibbonDropdownAction => {
   const { t } = useTranslation();
-  
+
   return {
     key: 'export',
     icon: Share24Regular,
@@ -139,5 +143,77 @@ export const createExportDropdownAction = (
     testId: 'ribbon-export-btn',
     showDividerAfter,
     dropdownItems: exportItems
+  };
+};
+
+/**
+ * Creates a Settings action that opens Fabric's built-in item settings pane.
+ * Icon-only (no label) per Fabric UX guidelines for the settings gear.
+ *
+ * Fetches full item metadata via callGetItem and passes it to callOpenSettings
+ * so the settings pane lifecycle is managed correctly by Fabric.
+ *
+ * @param workloadClient - Fabric workload client instance
+ * @param itemObjectId - The current item's object ID
+ * @param showDividerAfter - Whether to show a divider after this action (defaults to false)
+ */
+/**
+ * Opens Fabric's item settings pane for the given item.
+ * Fetches full item metadata before opening so the pane lifecycle is managed correctly.
+ */
+export async function openItemSettings(
+  workloadClient: WorkloadClientAPI,
+  itemObjectId: string,
+): Promise<void> {
+  const result = await callGetItem(workloadClient, itemObjectId);
+  if (result?.item) {
+    await callOpenSettings(workloadClient, result.item);
+  }
+}
+
+export const createItemSettingsAction = (
+  workloadClient: WorkloadClientAPI,
+  itemObjectId: string | undefined,
+  showDividerAfter: boolean = false,
+): RibbonAction => {
+  return {
+    key: 'settings',
+    icon: Settings24Regular,
+    tooltip: 'Settings',
+    onClick: () => {
+      if (!itemObjectId) return;
+      openItemSettings(workloadClient, itemObjectId).catch((err) =>
+        console.error('[Ribbon] Failed to open settings:', err),
+      );
+    },
+    disabled: !itemObjectId,
+    testId: 'ribbon-settings-btn',
+    showDividerAfter,
+  };
+};
+
+/**
+ * Documentation URL from the workload manifest (Product.json supportLink.documentation)
+ */
+const DOCUMENTATION_URL = 'https://www.intuigence.ai/fabric-workload/intuigence-ai-documentation';
+
+/**
+ * Creates a Help action that opens the workload documentation in a new tab.
+ * @param url - Documentation URL (defaults to manifest documentation link)
+ */
+export const createHelpAction = (
+  url: string = DOCUMENTATION_URL,
+  showDividerAfter: boolean = true,
+): RibbonAction => {
+  const { t } = useTranslation();
+
+  return {
+    key: 'help',
+    icon: QuestionCircle24Regular,
+    label: t("ItemEditor_Ribbon_Help_Label", "Help"),
+    onClick: () => { window.open(url, '_blank'); },
+    tooltip: t("ItemEditor_Ribbon_Help_Tooltip", "Open documentation"),
+    testId: 'ribbon-help-btn',
+    showDividerAfter,
   };
 };

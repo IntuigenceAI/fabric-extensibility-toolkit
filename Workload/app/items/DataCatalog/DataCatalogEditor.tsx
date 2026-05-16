@@ -106,11 +106,11 @@ export function DataCatalogEditor({ workloadClient }: DataCatalogEditorProps) {
         ribbon={(ctx) => (
           <DataCatalogRibbon
             viewContext={ctx}
-            onSave={catalog.save}
-            saving={catalog.saving}
             onAddData={handleAddData}
             quota={catalog.quota}
             isSampleMode={catalog.isSampleMode}
+            workloadClient={workloadClient}
+            itemObjectId={itemObjectId}
           />
         )}
         views={views}
