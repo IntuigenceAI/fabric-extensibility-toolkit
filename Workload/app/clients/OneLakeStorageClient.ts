@@ -35,7 +35,7 @@ export class OneLakeStorageClient extends FabricPlatformClient {
    * @returns Promise<boolean>
    */
   async checkIfFileExists(filePath: string): Promise<boolean> {
-    const url = `${EnvironmentConstants.OneLakeDFSBaseUrl}/${filePath}?resource=file`;
+    const url = `${EnvironmentConstants.OneLakeDFSBaseUrl}/${filePath}`;
     try {
       const accessToken = await this.getAccessToken();
       const response = await fetch(url, {
