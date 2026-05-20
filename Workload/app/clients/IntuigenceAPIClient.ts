@@ -46,6 +46,8 @@ export interface OneLakeIngestRequest {
     mimeType?: string;
     fileType?: string;
   }>;
+  /** The Fabric DataCatalog item ID that owns these documents */
+  fabricCatalogItemId?: string;
 }
 
 export interface OneLakeIngestResultItem {

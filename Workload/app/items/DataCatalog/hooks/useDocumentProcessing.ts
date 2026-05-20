@@ -231,6 +231,7 @@ export function useDocumentProcessing(
         mimeType,
         fileType: backendFileType,
       })),
+      fabricCatalogItemId: itemObjectId,
     };
 
     (async () => {
