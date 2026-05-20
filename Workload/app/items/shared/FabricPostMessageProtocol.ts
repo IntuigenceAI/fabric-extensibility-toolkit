@@ -51,6 +51,8 @@ export interface BoardContextPayload {
     catalogDisplayName: string;
   }>;
   allowedDocumentIds?: string[];
+  /** Fabric item IDs for server-side document scoping */
+  fabricItemIds?: string[];
 }
 
 export interface FabricThemePayload {

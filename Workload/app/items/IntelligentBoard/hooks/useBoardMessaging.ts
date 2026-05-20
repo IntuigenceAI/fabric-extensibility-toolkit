@@ -23,7 +23,7 @@ export interface UseBoardMessagingOptions {
   apiClient: IntuigenceAPIClient | null;
   boardId: string | null;
   catalogRefs: CatalogRef[];
-  catalogDocumentIds: string[];
+
   workspaceId: string;
   theme?: 'light' | 'dark';
 }
@@ -49,7 +49,6 @@ export function useBoardMessaging({
   apiClient,
   boardId,
   catalogRefs,
-  catalogDocumentIds,
   workspaceId,
   theme = 'light',
 }: UseBoardMessagingOptions): UseBoardMessagingResult {
@@ -86,15 +85,13 @@ export function useBoardMessaging({
         payload: { token, workspaceId } satisfies AuthTokenPayload,
       });
 
-      // 2. Board context with catalog references and allowed document IDs.
-      // Send the array even if empty — empty means "catalogs connected, no docs yet".
-      // Only omit when no catalogs are connected (null = no restriction).
+      // 2. Board context with catalog references and catalog item IDs for server-side scoping.
       postToIframe({
         type: FabricMessageType.BOARD_CONTEXT,
         payload: {
           workspaceId,
           catalogRefs,
-          allowedDocumentIds: catalogRefs.length > 0 ? catalogDocumentIds : undefined,
+          fabricItemIds: catalogRefs.map(r => r.catalogItemId),
         } satisfies BoardContextPayload,
       });
 
@@ -106,7 +103,7 @@ export function useBoardMessaging({
     } catch (err) {
       console.error('[useBoardMessaging] Failed to send initial context:', err);
     }
-  }, [apiClient, workspaceId, catalogRefs, catalogDocumentIds, theme, postToIframe]);
+  }, [apiClient, workspaceId, catalogRefs, theme, postToIframe]);
 
   // Handle incoming messages from the iframe
   useEffect(() => {
@@ -172,7 +169,6 @@ export function useBoardMessaging({
   }, [theme, iframeReady, postToIframe]);
 
   // Re-send BOARD_CONTEXT when catalog data changes (e.g. catalogs added/removed).
-  // Without this, allowedDocumentIds in the iframe becomes stale after the initial handshake.
   useEffect(() => {
     if (!iframeReady) return;
     postToIframe({
@@ -180,10 +176,10 @@ export function useBoardMessaging({
       payload: {
         workspaceId,
         catalogRefs,
-        allowedDocumentIds: catalogRefs.length > 0 ? catalogDocumentIds : undefined,
+        fabricItemIds: catalogRefs.map(r => r.catalogItemId),
       } satisfies BoardContextPayload,
     });
-  }, [catalogRefs, catalogDocumentIds, iframeReady, workspaceId, postToIframe]);
+  }, [catalogRefs, iframeReady, workspaceId, postToIframe]);
 
   // Request the iframe to save immediately
   const requestSave = useCallback(() => {

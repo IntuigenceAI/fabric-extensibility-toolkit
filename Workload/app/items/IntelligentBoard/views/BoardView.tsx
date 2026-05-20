@@ -90,7 +90,6 @@ export function BoardView() {
     definition,
     boardSaveRef,
     resetBoardId,
-    catalogDocumentIds,
     authError,
     isSampleMode,
   } = useIntelligentBoardContext();
@@ -105,7 +104,6 @@ export function BoardView() {
     apiClient,
     boardId,
     catalogRefs,
-    catalogDocumentIds,
     workspaceId,
     theme: 'light',
   });
