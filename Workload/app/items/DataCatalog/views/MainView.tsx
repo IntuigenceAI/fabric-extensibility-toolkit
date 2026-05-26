@@ -52,6 +52,8 @@ import {
   ChevronRight20Regular,
   Info16Regular,
   Warning16Regular,
+  ArrowSync20Regular,
+  Database20Regular,
 } from '@fluentui/react-icons';
 import { useViewNavigation } from '../../../components/ItemEditor';
 import { useDataCatalogContext } from '../DataCatalogContext';
@@ -190,6 +192,25 @@ const useStyles = makeStyles({
     alignItems: 'center',
     ...shorthands.gap('8px'),
   },
+  eventhouseBar: {
+    display: 'flex',
+    alignItems: 'center',
+    ...shorthands.gap('12px'),
+    ...shorthands.padding('8px', '24px'),
+    ...shorthands.margin('0', '24px', '8px'),
+    backgroundColor: tokens.colorNeutralBackground3,
+    ...shorthands.borderRadius(tokens.borderRadiusMedium),
+  },
+  eventhouseInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    ...shorthands.gap('6px'),
+    flexGrow: 1,
+  },
+  eventhouseMeta: {
+    color: tokens.colorNeutralForeground3,
+    fontSize: tokens.fontSizeBase200,
+  },
 });
 
 // ---------------------------------------------------------------------------
@@ -272,6 +293,39 @@ export function MainView({ onAddData }: MainViewProps) {
   const styles = useStyles();
   const catalog = useDataCatalogContext();
   const { setCurrentView } = useViewNavigation();
+  const [syncing, setSyncing] = useState(false);
+
+  const eventhouseSource = catalog.definition?.eventhouseSource;
+  const ehInFlight = catalog.activeFiles.some(
+    f => f.sourceType === 'eventhouse' && (f.status === 'uploading' || f.status === 'processing'),
+  );
+
+  const toasterId = useId('mainview-toaster');
+  const { dispatchToast } = useToastController(toasterId);
+
+  const handleSyncNow = useCallback(async () => {
+    setSyncing(true);
+    try {
+      await catalog.syncEventHouse();
+      dispatchToast(
+        <Toast>
+          <ToastTitle>Sync started</ToastTitle>
+        </Toast>,
+        { intent: 'success', timeout: 3000 },
+      );
+    } catch (err: any) {
+      console.error('[MainView] Sync failed:', err);
+      dispatchToast(
+        <Toast>
+          <ToastTitle>Sync failed</ToastTitle>
+          <ToastBody>{err.message || 'Something went wrong'}</ToastBody>
+        </Toast>,
+        { intent: 'error', timeout: 6000 },
+      );
+    } finally {
+      setSyncing(false);
+    }
+  }, [catalog, dispatchToast]);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -291,13 +345,13 @@ export function MainView({ onAddData }: MainViewProps) {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const toasterId = useId('mainview-toaster');
-  const { dispatchToast } = useToastController(toasterId);
-
   const isQuotaFull = catalog.quota !== null && catalog.quota.remaining <= 0;
   const documents = catalog.definition?.documents || [];
 
-  // Merge active processing files as placeholder rows
+  // Merge active processing files as placeholder rows.
+  // Sample-mode visibility split: in sample mode show only sample rows; outside
+  // sample mode hide them. Real-upload placeholders carry sourceType !== 'sample',
+  // so they naturally drop out of the sample-mode view.
   const allDocs = useMemo(() => {
     const realDocs = [...documents];
     const realFileIds = new Set(realDocs.map(d => d.intuigenceFileId).filter(Boolean));
@@ -321,8 +375,11 @@ export function MainView({ onAddData }: MainViewProps) {
         addedBy: 'Fabric User',
       }));
 
-    return [...placeholders, ...realDocs];
-  }, [documents, catalog.activeFiles]);
+    const merged = [...placeholders, ...realDocs];
+    return catalog.isSampleMode
+      ? merged.filter(d => d.sourceType === 'sample')
+      : merged.filter(d => d.sourceType !== 'sample');
+  }, [documents, catalog.activeFiles, catalog.isSampleMode]);
 
   // Reset page when filters or sort change
   useEffect(() => { setPage(1); }, [searchQuery, typeFilter, statusFilter, sortColumn, sortDirection]);
@@ -406,10 +463,23 @@ export function MainView({ onAddData }: MainViewProps) {
   }, []);
 
   const handleConfirmDelete = useCallback(async () => {
-    const count = selectedIds.size;
+    // Skip any sample docs: they live under a shared SAMPLE_TENANT_ID and
+    // deleting them via the normal flow would either 404 or, worse, remove
+    // them for every other user. Users exit sample mode to drop sample rows.
+    const sampleDocIds = new Set(
+      (catalog.definition?.documents ?? [])
+        .filter(d => d.sourceType === 'sample')
+        .map(d => d.id),
+    );
+    const deletable = Array.from(selectedIds).filter(id => !sampleDocIds.has(id));
+    const count = deletable.length;
+    if (count === 0) {
+      setDeleteConfirmOpen(false);
+      return;
+    }
     setDeleting(true);
     try {
-      await catalog.removeDocument(Array.from(selectedIds));
+      await catalog.removeDocument(deletable);
       setSelectedIds(new Set());
       setDeleteConfirmOpen(false);
       dispatchToast(
@@ -587,7 +657,7 @@ export function MainView({ onAddData }: MainViewProps) {
           value={searchQuery}
           onChange={(_, data) => setSearchQuery(data.value)}
         />
-        {selectedIds.size > 0 && !catalog.isSampleMode && (
+        {selectedIds.size > 0 && (
           <Button
             appearance="subtle"
             icon={<Delete20Regular />}
@@ -635,6 +705,35 @@ export function MainView({ onAddData }: MainViewProps) {
         )}
       </div>
 
+      {/* EventHouse connection info */}
+      {eventhouseSource && (
+        <div className={styles.eventhouseBar}>
+          <Database20Regular />
+          <div className={styles.eventhouseInfo}>
+            <Text size={200} weight="semibold">
+              {eventhouseSource.eventhouseName}
+            </Text>
+            <Text size={200} className={styles.eventhouseMeta}>
+              {eventhouseSource.databaseName} / {eventhouseSource.tableName}
+            </Text>
+            {eventhouseSource.lastFullRefreshAt && (
+              <Text size={200} className={styles.eventhouseMeta}>
+                Last full refresh: {formatDateTime(eventhouseSource.lastFullRefreshAt)}
+              </Text>
+            )}
+          </div>
+          <Button
+            appearance="subtle"
+            size="small"
+            icon={syncing ? <Spinner size="tiny" /> : <ArrowSync20Regular />}
+            onClick={handleSyncNow}
+            disabled={syncing || ehInFlight}
+          >
+            {syncing ? 'Syncing...' : 'Sync Now'}
+          </Button>
+        </div>
+      )}
+
       {/* DataGrid */}
       <div className={`${styles.gridWrapper} datacatalog-grid`}>
         {isTrulyEmpty ? (
@@ -661,9 +760,9 @@ export function MainView({ onAddData }: MainViewProps) {
             items={paginatedDocs}
             columns={columns}
             getRowId={(item) => item.id}
-            selectionMode={catalog.isSampleMode ? 'single' : 'multiselect'}
+            selectionMode="multiselect"
             selectedItems={selectedIds}
-            onSelectionChange={catalog.isSampleMode ? undefined : (_, data) => setSelectedIds(data.selectedItems as Set<string>)}
+            onSelectionChange={(_, data) => setSelectedIds(data.selectedItems as Set<string>)}
             focusMode="composite"
             size="medium"
             className={styles.dataGrid}

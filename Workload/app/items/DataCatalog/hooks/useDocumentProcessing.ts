@@ -1,8 +1,11 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { WorkloadClientAPI } from '@ms-fabric/workload-client';
 import { IntuigenceAPIClient, DocumentDetails } from '../../../clients/IntuigenceAPIClient';
 import type { OneLakeIngestRequest } from '../../../clients/IntuigenceAPIClient';
-import { DataSourceType, CatalogDocumentEntry, CatalogDocumentType, DocumentProcessingStatus } from '../DataCatalogDefinition';
+import { OneLakeStorageClient } from '../../../clients/OneLakeStorageClient';
+import { DataSourceType, CatalogDocumentEntry, CatalogDocumentType, DocumentProcessingStatus, EventHouseSourceConfig } from '../DataCatalogDefinition';
 import { OneLakeFileSelection } from '../DataCatalogContext';
+import { queryTableData, kqlResultToCsvString } from '../utils/eventhouseUtils';
 
 export interface ProcessingFile {
   localId: string;
@@ -19,6 +22,11 @@ export interface ProcessingFile {
 
 export interface UseDocumentProcessingResult {
   ingestFromOneLake: (files: OneLakeFileSelection[], docType?: string) => void;
+  ingestFromEventHouse: (
+    config: EventHouseSourceConfig,
+    workloadClient: WorkloadClientAPI,
+    onIngestAccepted?: () => void,
+  ) => void;
   trackSeedFile: (fileId: string, fileName: string, mimeType: string, docType: string) => void;
   activeFiles: ProcessingFile[];
   removeFile: (localId: string) => void;
@@ -285,6 +293,101 @@ export function useDocumentProcessing(
     })();
   }, [apiClient, updateFile, startPolling]);
 
+  const ingestFromEventHouse = useCallback((
+    config: EventHouseSourceConfig,
+    workloadClient: WorkloadClientAPI,
+    onIngestAccepted?: () => void,
+  ) => {
+    if (!apiClient) return;
+
+    const fileName = `${config.tableName}.csv`;
+    const localId = generateId();
+    const mimeType = 'text/csv';
+
+    setActiveFiles(prev => [...prev, {
+      localId,
+      fileName,
+      mimeType,
+      fileType: 'timeseries',
+      sourceType: 'eventhouse' as DataSourceType,
+      status: 'uploading' as const,
+    }]);
+
+    (async () => {
+      try {
+        // 1. Query EventHouse
+        updateFile(localId, { status: 'uploading' });
+        const kqlResult = await queryTableData(
+          workloadClient,
+          config.queryServiceUri,
+          config.databaseName,
+          config.tableName,
+        );
+
+        // 2. Convert to CSV
+        const csvString = kqlResultToCsvString(kqlResult);
+        if (!csvString) {
+          updateFile(localId, { status: 'failed', error: 'EventHouse returned no rows' });
+          return;
+        }
+
+        // 3. Write CSV to Lakehouse staging path
+        const storageClient = new OneLakeStorageClient(workloadClient);
+        const stagingPath = `.eventhouse-staging/${config.tableName}.csv`;
+        const filePath = OneLakeStorageClient.getFilePath(
+          config.lakehouseWorkspaceId,
+          config.lakehouseItemId,
+          stagingPath,
+        );
+        await storageClient.writeFileAsText(filePath, csvString);
+
+        // 4. Ingest from OneLake using existing endpoint
+        const request: OneLakeIngestRequest = {
+          files: [{
+            workspaceId: config.lakehouseWorkspaceId,
+            itemId: config.lakehouseItemId,
+            selectedPath: stagingPath,
+            fileName,
+            mimeType,
+            fileType: 'timeseries',
+          }],
+        };
+
+        const response = await apiClient.ingestFromOneLake(request);
+        const result = response.results[0];
+
+        if (result?.status === 'accepted' && result.fileId) {
+          updateFile(localId, { status: 'processing', fileId: result.fileId });
+
+          onDocumentReadyRef.current({
+            id: localId,
+            fileName,
+            mimeType,
+            sizeBytes: 0,
+            sourceType: 'eventhouse',
+            documentType: 'timeseries',
+            processingStatus: 'processing',
+            intuigenceDocumentId: null,
+            intuigenceFileId: result.fileId,
+            intuigenceGraphId: null,
+            errorMessage: null,
+            lastUpdated: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            addedBy: 'Fabric User',
+          });
+
+          startPolling(localId, result.fileId, fileName, mimeType, 'timeseries');
+          onIngestAccepted?.();
+        } else {
+          updateFile(localId, { status: 'failed', error: result?.error || 'Server rejected file' });
+        }
+      } catch (err: any) {
+        console.error('[useDocumentProcessing] EventHouse ingest error:', err);
+        updateFile(localId, { status: 'failed', error: err.message || 'EventHouse ingestion failed' });
+      }
+    })();
+  }, [apiClient, updateFile, startPolling]);
+
   const removeFile = useCallback((localId: string) => {
     const timer = pollTimers.current.get(localId);
     if (timer) {
@@ -337,6 +440,7 @@ export function useDocumentProcessing(
 
   return {
     ingestFromOneLake,
+    ingestFromEventHouse,
     trackSeedFile,
     activeFiles,
     removeFile,

@@ -72,6 +72,10 @@ export interface SeedSampleSharedResultItem {
   fileType?: string;
   mimeType?: string;
   isIndexed?: boolean;
+  /** Knowledge graph id for processed P&IDs — required to render the graph viewer */
+  graphId?: string;
+  /** Original file size in bytes. Absent if backend has no size on record. */
+  fileSize?: number;
 }
 
 export interface SeedSampleSharedResponse {
@@ -256,7 +260,7 @@ export class IntuigenceAPIClient {
   async getSampleStatus(): Promise<SeedSampleSharedResponse> {
     const token = await this.authBridge.getWorkloadToken();
 
-    const res = await fetch(`${this.baseUrl}/api/v2/files/sample-status`, {
+    const res = await fetch(`${this.baseUrl}/api/v2/files/fabric/sample-status`, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${token}`,

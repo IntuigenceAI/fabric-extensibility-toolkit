@@ -8,6 +8,13 @@ import {
   Toast,
   ToastTitle,
   ToastBody,
+  Dialog,
+  DialogSurface,
+  DialogBody,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
 } from "@fluentui/react-components";
 import { ItemEditor, RegisteredView } from "../../components/ItemEditor";
 import { DataCatalogContext } from "./DataCatalogContext";
@@ -27,6 +34,8 @@ export function DataCatalogEditor({ workloadClient }: DataCatalogEditorProps) {
   const { itemObjectId } = useParams<{ itemObjectId?: string }>();
   const catalog = useDataCatalog(workloadClient, itemObjectId);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [sampleLoading, setSampleLoading] = useState(false);
+  const [showExitSampleConfirm, setShowExitSampleConfirm] = useState(false);
 
   const toasterId = useId('datacatalog-toaster');
   const { dispatchToast } = useToastController(toasterId);
@@ -34,6 +43,54 @@ export function DataCatalogEditor({ workloadClient }: DataCatalogEditorProps) {
 
   const handleAddData = useCallback(() => setShowAddDialog(true), []);
   const handleCloseDialog = useCallback(() => setShowAddDialog(false), []);
+
+  const handleLoadSample = useCallback(async () => {
+    if (sampleLoading) return;
+    setSampleLoading(true);
+    try {
+      const count = await catalog.seedSampleData();
+      if (viewSetterRef.current) viewSetterRef.current('main');
+      dispatchToast(
+        <Toast>
+          <ToastTitle>Sample data loaded</ToastTitle>
+          <ToastBody>{count} sample file{count !== 1 ? 's are' : ' is'} being processed</ToastBody>
+        </Toast>,
+        { intent: 'info', timeout: 4000 },
+      );
+    } catch (err: any) {
+      dispatchToast(
+        <Toast>
+          <ToastTitle>Failed to load sample data</ToastTitle>
+          <ToastBody>{err?.message || 'Something went wrong'}</ToastBody>
+        </Toast>,
+        { intent: 'error', timeout: 6000 },
+      );
+    } finally {
+      setSampleLoading(false);
+    }
+  }, [catalog, dispatchToast, sampleLoading]);
+
+  const handleExitSample = useCallback(() => setShowExitSampleConfirm(true), []);
+  const handleConfirmExitSample = useCallback(async () => {
+    setShowExitSampleConfirm(false);
+    try {
+      await catalog.exitSampleMode();
+      dispatchToast(
+        <Toast>
+          <ToastTitle>Exited sample mode</ToastTitle>
+        </Toast>,
+        { intent: 'success', timeout: 3000 },
+      );
+    } catch (err: any) {
+      dispatchToast(
+        <Toast>
+          <ToastTitle>Failed to exit sample mode</ToastTitle>
+          <ToastBody>{err?.message || 'Something went wrong'}</ToastBody>
+        </Toast>,
+        { intent: 'error', timeout: 6000 },
+      );
+    }
+  }, [catalog, dispatchToast]);
 
   const handleViewSetter = useCallback((setter: (view: string) => void) => {
     viewSetterRef.current = setter;
@@ -109,8 +166,11 @@ export function DataCatalogEditor({ workloadClient }: DataCatalogEditorProps) {
             onSave={catalog.save}
             saving={catalog.saving}
             onAddData={handleAddData}
+            onLoadSample={handleLoadSample}
+            onExitSample={handleExitSample}
             quota={catalog.quota}
             isSampleMode={catalog.isSampleMode}
+            sampleLoading={sampleLoading}
           />
         )}
         views={views}
@@ -118,9 +178,32 @@ export function DataCatalogEditor({ workloadClient }: DataCatalogEditorProps) {
         isLoading={catalog.loading || !catalog.authReady}
         loadingMessage="Loading Knowledge Graph..."
       />
-      {showAddDialog && !catalog.isSampleMode && (
+      {showAddDialog && (
         <AddDataDialog onClose={handleCloseDialog} onFilesSubmitted={handleFilesSubmitted} />
       )}
+      <Dialog
+        open={showExitSampleConfirm}
+        onOpenChange={(_, data) => { if (!data.open) setShowExitSampleConfirm(false); }}
+      >
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Exit sample mode?</DialogTitle>
+            <DialogContent>
+              The pre-loaded sample files will be hidden from this item. Your own
+              uploaded files remain. You can re-load the sample data later from
+              the ribbon.
+            </DialogContent>
+            <DialogActions>
+              <Button appearance="secondary" onClick={() => setShowExitSampleConfirm(false)}>
+                Cancel
+              </Button>
+              <Button appearance="primary" onClick={handleConfirmExitSample}>
+                Exit sample mode
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
       <Toaster toasterId={toasterId} position="bottom-end" />
     </DataCatalogContext.Provider>
   );
