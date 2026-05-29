@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { WorkloadClientAPI } from '@ms-fabric/workload-client';
 import { IntuigenceAPIClient, SeedSampleSharedResponse } from '../../../clients/IntuigenceAPIClient';
-import { CatalogDocumentEntry, CatalogDocumentType, recomputeStats } from '../DataCatalogDefinition';
+import { CatalogDocumentEntry, CatalogDocumentType, EventHouseSourceConfig, recomputeStats } from '../DataCatalogDefinition';
 import { useOneLakeSync } from './useOneLakeSync';
 import { useDocumentProcessing } from './useDocumentProcessing';
 import { DataCatalogContextValue, OneLakeFileSelection } from '../DataCatalogContext';
@@ -246,6 +246,56 @@ export function useDataCatalog(
     processing.ingestFromOneLake(files, docType);
   }, [processing]);
 
+  const ingestFromEventHouse = useCallback((config: EventHouseSourceConfig) => {
+    // Persist the EventHouse source config + lastFullRefreshAt only after the OneLake
+    // ingest endpoint accepts the staged CSV — a failure earlier in the pipeline
+    // (KQL query, CSV write, ingest rejection) leaves the timestamp untouched.
+    processing.ingestFromEventHouse(config, workloadClient, () => {
+      const currentDef = definitionRef.current;
+      if (!currentDef) return;
+      const updatedDef = {
+        ...currentDef,
+        eventhouseSource: { ...config, lastFullRefreshAt: new Date().toISOString() },
+      };
+      definitionRef.current = updatedDef;
+      saveDefinitionRef.current(updatedDef).catch((err) => {
+        console.error('[useDataCatalog] Failed to save EventHouse config:', err);
+      });
+    });
+  }, [processing, workloadClient]);
+
+  const syncEventHouse = useCallback(async () => {
+    const currentDef = definitionRef.current;
+    if (!currentDef?.eventhouseSource) return;
+
+    // Guard against firing a sync while a prior EventHouse ingest (initial
+    // connect or another sync) is still uploading/processing. Both flows write
+    // the same `.eventhouse-staging/<table>.csv` staging path, so a race here
+    // would mean two pipelines competing for the same file.
+    const inFlight = processing.activeFiles.some(
+      f => f.sourceType === 'eventhouse' && (f.status === 'uploading' || f.status === 'processing'),
+    );
+    if (inFlight) {
+      throw new Error('An EventHouse sync is already in progress.');
+    }
+
+    const config = currentDef.eventhouseSource;
+    // Same pattern as ingestFromEventHouse: only bump lastFullRefreshAt once the
+    // OneLake ingest is accepted.
+    processing.ingestFromEventHouse(config, workloadClient, () => {
+      const latestDef = definitionRef.current;
+      if (!latestDef) return;
+      const updatedDef = {
+        ...latestDef,
+        eventhouseSource: { ...config, lastFullRefreshAt: new Date().toISOString() },
+      };
+      definitionRef.current = updatedDef;
+      saveDefinitionRef.current(updatedDef).catch((err) => {
+        console.error('[useDataCatalog] Failed to update sync timestamp:', err);
+      });
+    });
+  }, [processing, workloadClient]);
+
   // Populate definition.documents from a shared sample response whose files are all ready
   const populateSampleDocs = useCallback((response: SeedSampleSharedResponse) => {
     const currentDef = definitionRef.current;
@@ -390,6 +440,8 @@ export function useDataCatalog(
     saving: sync.saving,
     authReady,
     ingestFromOneLake,
+    ingestFromEventHouse,
+    syncEventHouse,
     seedSampleData,
     removeDocument,
     activeFiles: processing.activeFiles,

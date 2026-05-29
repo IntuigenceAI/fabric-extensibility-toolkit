@@ -10,6 +10,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  RadioGroup,
+  Radio,
   makeStyles,
   tokens,
   shorthands,
@@ -18,6 +20,8 @@ import { ExtendedItemTypeV2 } from '@ms-fabric/workload-client';
 import { callDatahubOpen } from '../../../controller/DataHubController';
 import { useDataCatalogContext, OneLakeFileSelection } from '../DataCatalogContext';
 import { OneLakeFilePicker } from './OneLakeFilePicker';
+import { EventHousePickerDialog } from './EventHousePickerDialog';
+import type { EventHouseSourceConfig } from '../DataCatalogDefinition';
 
 const useStyles = makeStyles({
   content: {
@@ -47,6 +51,8 @@ const useStyles = makeStyles({
   },
 });
 
+type DataSource = 'onelake' | 'eventhouse';
+
 const DOC_TYPE_OPTIONS = [
   { key: 'document', label: 'Document (pdf, docx, txt)', disabled: false },
   { key: 'pid', label: 'P&ID (pdf, png, jpg)', disabled: false },
@@ -67,10 +73,12 @@ interface AddDataDialogProps {
 export function AddDataDialog({ onClose, onFilesSubmitted }: AddDataDialogProps) {
   const styles = useStyles();
   const catalog = useDataCatalogContext();
+  const [dataSource, setDataSource] = useState<DataSource>('onelake');
   const [selectedDocType, setSelectedDocType] = useState('document');
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [lakehouse, setLakehouse] = useState<{ id: string; workspaceId: string; displayName: string } | null>(null);
   const [showFilePicker, setShowFilePicker] = useState(false);
+  const [showEventHousePicker, setShowEventHousePicker] = useState(false);
 
   const handleChooseData = useCallback(async () => {
     if (isPickerOpen) return;
@@ -110,9 +118,49 @@ export function AddDataDialog({ onClose, onFilesSubmitted }: AddDataDialogProps)
     setShowFilePicker(false);
   }, []);
 
+  const handleEventHouseConnect = useCallback(async (
+    config: Omit<EventHouseSourceConfig, 'lakehouseWorkspaceId' | 'lakehouseItemId' | 'lastFullRefreshAt'>
+  ) => {
+    setShowEventHousePicker(false);
+
+    // User needs to pick a Lakehouse to stage the CSV
+    let lh = lakehouse;
+    if (!lh) {
+      try {
+        const result = await callDatahubOpen(
+          catalog.workloadClient,
+          ["Lakehouse" as ExtendedItemTypeV2],
+          'Choose a Lakehouse to store the data',
+          false,
+        );
+        if (!result) return;
+        lh = { id: result.id, workspaceId: result.workspaceId, displayName: result.displayName };
+        setLakehouse(lh);
+      } catch (err) {
+        console.error('[AddDataDialog] Lakehouse selector error:', err);
+        return;
+      }
+    }
+
+    const fullConfig: EventHouseSourceConfig = {
+      ...config,
+      lakehouseWorkspaceId: lh.workspaceId,
+      lakehouseItemId: lh.id,
+      lastFullRefreshAt: null,
+    };
+
+    catalog.ingestFromEventHouse(fullConfig);
+    onFilesSubmitted(1);
+    onClose();
+  }, [catalog, lakehouse, onFilesSubmitted, onClose]);
+
+  const handleEventHouseCancel = useCallback(() => {
+    setShowEventHousePicker(false);
+  }, []);
+
   return (
     <>
-    <Dialog open={!showFilePicker} onOpenChange={(_, data) => { if (!data.open) onClose(); }}>
+    <Dialog open={!showFilePicker && !showEventHousePicker} onOpenChange={(_, data) => { if (!data.open) onClose(); }}>
       <DialogSurface>
         <DialogBody>
           <DialogTitle>Add data</DialogTitle>
@@ -121,39 +169,71 @@ export function AddDataDialog({ onClose, onFilesSubmitted }: AddDataDialogProps)
               Select the type of data you want to prepare for contextualization.
             </Text>
 
-            {/* Document type selector */}
+            {/* Data source selector */}
             <div className={styles.fieldGroup}>
-              <Text className={styles.label}>Document type</Text>
-              <Combobox
-                className={styles.combobox}
-                value={DOC_TYPE_OPTIONS.find(o => o.key === selectedDocType)?.label || ''}
-                onOptionSelect={(_, data) => {
-                  if (data.optionValue) setSelectedDocType(data.optionValue);
-                }}
-                selectedOptions={[selectedDocType]}
+              <Text className={styles.label}>Data source</Text>
+              <RadioGroup
+                value={dataSource}
+                onChange={(_, data) => setDataSource(data.value as DataSource)}
               >
-                {DOC_TYPE_OPTIONS.map(opt => (
-                  <Option key={opt.key} value={opt.key} text={opt.label} disabled={opt.disabled}>
-                    {opt.label}
-                    {opt.disabled ? ' (Coming soon)' : ''}
-                  </Option>
-                ))}
-              </Combobox>
+                <Radio value="onelake" label="OneLake Files" />
+                <Radio value="eventhouse" label="EventHouse (Timeseries)" />
+              </RadioGroup>
             </div>
 
-            {/* Choose data button */}
-            <div className={styles.chooseDataRow}>
-              <Button
-                appearance="primary"
-                onClick={handleChooseData}
-                disabled={isPickerOpen}
-              >
-                {isPickerOpen ? 'Selecting...' : 'Choose data'}
-              </Button>
-              <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                Browse OneLake to select files
-              </Text>
-            </div>
+            {/* OneLake flow */}
+            {dataSource === 'onelake' && (
+              <>
+                {/* Document type selector */}
+                <div className={styles.fieldGroup}>
+                  <Text className={styles.label}>Document type</Text>
+                  <Combobox
+                    className={styles.combobox}
+                    value={DOC_TYPE_OPTIONS.find(o => o.key === selectedDocType)?.label || ''}
+                    onOptionSelect={(_, data) => {
+                      if (data.optionValue) setSelectedDocType(data.optionValue);
+                    }}
+                    selectedOptions={[selectedDocType]}
+                  >
+                    {DOC_TYPE_OPTIONS.map(opt => (
+                      <Option key={opt.key} value={opt.key} text={opt.label} disabled={opt.disabled}>
+                        {opt.label}
+                        {opt.disabled ? ' (Coming soon)' : ''}
+                      </Option>
+                    ))}
+                  </Combobox>
+                </div>
+
+                {/* Choose data button */}
+                <div className={styles.chooseDataRow}>
+                  <Button
+                    appearance="primary"
+                    onClick={handleChooseData}
+                    disabled={isPickerOpen}
+                  >
+                    {isPickerOpen ? 'Selecting...' : 'Choose data'}
+                  </Button>
+                  <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                    Browse OneLake to select files
+                  </Text>
+                </div>
+              </>
+            )}
+
+            {/* EventHouse flow */}
+            {dataSource === 'eventhouse' && (
+              <div className={styles.chooseDataRow}>
+                <Button
+                  appearance="primary"
+                  onClick={() => setShowEventHousePicker(true)}
+                >
+                  Connect to EventHouse
+                </Button>
+                <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                  Select an EventHouse table to ingest timeseries data
+                </Text>
+              </div>
+            )}
           </DialogContent>
 
           <DialogActions>
@@ -175,6 +255,14 @@ export function AddDataDialog({ onClose, onFilesSubmitted }: AddDataDialogProps)
         onCancel={handleFilePickerCancel}
         allowedExtensions={DOC_TYPE_EXTENSIONS[selectedDocType]}
         maxFiles={catalog.quota?.remaining ?? undefined}
+      />
+    )}
+
+    {showEventHousePicker && (
+      <EventHousePickerDialog
+        workloadClient={catalog.workloadClient}
+        onConnect={handleEventHouseConnect}
+        onCancel={handleEventHouseCancel}
       />
     )}
     </>
