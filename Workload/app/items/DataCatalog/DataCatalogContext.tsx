@@ -23,6 +23,7 @@ export interface DataCatalogContextValue {
   ingestFromEventHouse: (config: EventHouseSourceConfig) => void;
   syncEventHouse: () => Promise<void>;
   seedSampleData: () => Promise<number>;
+  exitSampleMode: () => Promise<void>;
   removeDocument: (ids: string[]) => Promise<void>;
   activeFiles: ProcessingFile[];
   removeActiveFile: (localId: string) => void;
