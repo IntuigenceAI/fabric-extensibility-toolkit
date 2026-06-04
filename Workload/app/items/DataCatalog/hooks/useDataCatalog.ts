@@ -416,11 +416,14 @@ export function useDataCatalog(
     // render with per-file status right away; the reconcile effect will poll
     // getSampleStatus and flip rows to 'success' as files complete.
     populateSampleDocs(response);
-    // Re-arm the reconcile effect so the freshly-seeded sample docs get a
-    // sample-status poll. The effect latches statusRefreshDone=true on first
-    // run for the mounted item, so without this reset a seed in an already-
-    // open empty item leaves any not-yet-indexed row stuck on 'processing'
-    // until the item is reloaded.
+    // Re-arm both reconcile latches so the freshly-seeded sample docs get a
+    // sample-status poll. statusRefreshDone gates the effect (latched on
+    // first run for the mounted item); sampleStatusCancelled gates the poll
+    // itself (set true by exitSampleMode and only otherwise reset on
+    // mount/item change). Without both, an exit-then-reseed in the same
+    // mount leaves any not-yet-indexed row stuck on 'processing' until
+    // the item is reloaded.
+    sampleStatusCancelled.current = false;
     statusRefreshDone.current = false;
     return response.results.length;
   }, [apiClient, populateSampleDocs]);
