@@ -477,6 +477,13 @@ export function MainView({ onAddData, onExitSample }: MainViewProps) {
     const count = deletable.length;
     if (count === 0) {
       setDeleteConfirmOpen(false);
+      dispatchToast(
+        <Toast>
+          <ToastTitle>Sample files can't be deleted</ToastTitle>
+          <ToastBody>Exit sample mode instead to hide the pre-loaded example data.</ToastBody>
+        </Toast>,
+        { intent: 'info', timeout: 5000 }
+      );
       return;
     }
     setDeleting(true);
