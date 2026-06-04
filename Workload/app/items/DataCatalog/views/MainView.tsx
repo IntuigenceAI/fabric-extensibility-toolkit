@@ -54,6 +54,7 @@ import {
   Warning16Regular,
   ArrowSync20Regular,
   Database20Regular,
+  SignOut20Regular,
 } from '@fluentui/react-icons';
 import { useViewNavigation } from '../../../components/ItemEditor';
 import { useDataCatalogContext } from '../DataCatalogContext';
@@ -285,11 +286,12 @@ function getDocTypeLabel(docType: string | undefined): string {
 
 interface MainViewProps {
   onAddData: () => void;
+  onExitSample: () => void;
 }
 
 type SortColumn = 'fileName' | 'documentType' | 'sizeBytes' | 'processingStatus' | 'createdAt';
 
-export function MainView({ onAddData }: MainViewProps) {
+export function MainView({ onAddData, onExitSample }: MainViewProps) {
   const styles = useStyles();
   const catalog = useDataCatalogContext();
   const { setCurrentView } = useViewNavigation();
@@ -348,7 +350,10 @@ export function MainView({ onAddData }: MainViewProps) {
   const isQuotaFull = catalog.quota !== null && catalog.quota.remaining <= 0;
   const documents = catalog.definition?.documents || [];
 
-  // Merge active processing files as placeholder rows
+  // Merge active processing files as placeholder rows.
+  // Sample-mode visibility split: in sample mode show only sample rows; outside
+  // sample mode hide them. Real-upload placeholders carry sourceType !== 'sample',
+  // so they naturally drop out of the sample-mode view.
   const allDocs = useMemo(() => {
     const realDocs = [...documents];
     const realFileIds = new Set(realDocs.map(d => d.intuigenceFileId).filter(Boolean));
@@ -372,8 +377,11 @@ export function MainView({ onAddData }: MainViewProps) {
         addedBy: 'Fabric User',
       }));
 
-    return [...placeholders, ...realDocs];
-  }, [documents, catalog.activeFiles]);
+    const merged = [...placeholders, ...realDocs];
+    return catalog.isSampleMode
+      ? merged.filter(d => d.sourceType === 'sample')
+      : merged.filter(d => d.sourceType !== 'sample');
+  }, [documents, catalog.activeFiles, catalog.isSampleMode]);
 
   // Reset page when filters or sort change
   useEffect(() => { setPage(1); }, [searchQuery, typeFilter, statusFilter, sortColumn, sortDirection]);
@@ -457,10 +465,30 @@ export function MainView({ onAddData }: MainViewProps) {
   }, []);
 
   const handleConfirmDelete = useCallback(async () => {
-    const count = selectedIds.size;
+    // Skip any sample docs: they live under a shared SAMPLE_TENANT_ID and
+    // deleting them via the normal flow would either 404 or, worse, remove
+    // them for every other user. Users exit sample mode to drop sample rows.
+    const sampleDocIds = new Set(
+      (catalog.definition?.documents ?? [])
+        .filter(d => d.sourceType === 'sample')
+        .map(d => d.id),
+    );
+    const deletable = Array.from(selectedIds).filter(id => !sampleDocIds.has(id));
+    const count = deletable.length;
+    if (count === 0) {
+      setDeleteConfirmOpen(false);
+      dispatchToast(
+        <Toast>
+          <ToastTitle>Sample files can't be deleted</ToastTitle>
+          <ToastBody>Exit sample mode instead to hide the pre-loaded example data.</ToastBody>
+        </Toast>,
+        { intent: 'info', timeout: 5000 }
+      );
+      return;
+    }
     setDeleting(true);
     try {
-      await catalog.removeDocument(Array.from(selectedIds));
+      await catalog.removeDocument(deletable);
       setSelectedIds(new Set());
       setDeleteConfirmOpen(false);
       dispatchToast(
@@ -614,6 +642,15 @@ export function MainView({ onAddData }: MainViewProps) {
             <div className={styles.quotaIndicator}>
               <Info16Regular />
               <span>Sample Mode &mdash; Viewing pre-loaded example data</span>
+              <Button
+                appearance="subtle"
+                size="small"
+                icon={<SignOut20Regular />}
+                onClick={onExitSample}
+                data-testid="exit-sample-btn"
+              >
+                Exit sample mode
+              </Button>
             </div>
           ) : catalog.quota && (
             <div className={isQuotaFull ? styles.quotaIndicatorFull : styles.quotaIndicator}>
@@ -638,7 +675,7 @@ export function MainView({ onAddData }: MainViewProps) {
           value={searchQuery}
           onChange={(_, data) => setSearchQuery(data.value)}
         />
-        {selectedIds.size > 0 && !catalog.isSampleMode && (
+        {selectedIds.size > 0 && (
           <Button
             appearance="subtle"
             icon={<Delete20Regular />}
@@ -741,9 +778,9 @@ export function MainView({ onAddData }: MainViewProps) {
             items={paginatedDocs}
             columns={columns}
             getRowId={(item) => item.id}
-            selectionMode={catalog.isSampleMode ? 'single' : 'multiselect'}
+            selectionMode="multiselect"
             selectedItems={selectedIds}
-            onSelectionChange={catalog.isSampleMode ? undefined : (_, data) => setSelectedIds(data.selectedItems as Set<string>)}
+            onSelectionChange={(_, data) => setSelectedIds(data.selectedItems as Set<string>)}
             focusMode="composite"
             size="medium"
             className={styles.dataGrid}

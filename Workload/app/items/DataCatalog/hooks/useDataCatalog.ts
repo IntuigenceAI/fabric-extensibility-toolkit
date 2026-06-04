@@ -135,6 +135,16 @@ export function useDataCatalog(
     prevItemIdForRefresh.current = itemObjectId;
     statusRefreshDone.current = false;
   }
+  // Cancellation flag for sample-mode polling — flipped on unmount / item change
+  // so any in-flight setTimeout chain stops scheduling further calls.
+  const sampleStatusCancelled = useRef(false);
+  useEffect(() => {
+    sampleStatusCancelled.current = false;
+    return () => {
+      sampleStatusCancelled.current = true;
+    };
+  }, [itemObjectId]);
+
   useEffect(() => {
     if (!sync.definition || !apiClient || !authReady || statusRefreshDone.current) return;
     statusRefreshDone.current = true;
@@ -149,6 +159,66 @@ export function useDataCatalog(
     );
 
     if (pendingDocs.length === 0 && zeroSizeDocs.length === 0) return;
+
+    // Sample-mode catalogs live under SAMPLE_TENANT_ID, but /api/v1/documents/:id
+    // is scoped to the caller's tenant — so getDocument 404s for every sample
+    // file. Reconcile via the dedicated sample-status endpoint instead, and
+    // skip per-doc polling (which would loop on those same 404s).
+    if (sync.definition.isSampleMode) {
+      (async () => {
+        const applyStatus = (response: SeedSampleSharedResponse) => {
+          const currentDef = definitionRef.current;
+          if (!currentDef) return;
+          const byFileId = new Map(
+            response.results.filter((r) => r.fileId).map((r) => [r.fileId!, r] as const),
+          );
+          const mergedDocs = currentDef.documents.map((d) => {
+            if (!d.intuigenceFileId) return d;
+            const r = byFileId.get(d.intuigenceFileId);
+            if (!r) return d;
+            const isReady = r.isIndexed === true || r.status === 'completed' || r.status === 'accepted';
+            const isFailed = r.status === 'failed';
+            if (isReady) {
+              const newSize = Number(r.fileSize);
+              return {
+                ...d,
+                processingStatus: 'success' as const,
+                errorMessage: null,
+                ...(r.graphId && { intuigenceGraphId: r.graphId }),
+                ...(newSize > 0 && { sizeBytes: newSize }),
+              };
+            }
+            if (isFailed) {
+              return { ...d, processingStatus: 'failed' as const, errorMessage: 'Processing failed' };
+            }
+            return d;
+          });
+          const updatedDef = recomputeStats({ ...currentDef, documents: mergedDocs });
+          definitionRef.current = updatedDef;
+          saveDefinitionRef.current(updatedDef).catch((err) => {
+            console.error('[useDataCatalog] Sample-mode status refresh save failed:', err);
+          });
+        };
+
+        const poll = async (): Promise<void> => {
+          if (sampleStatusCancelled.current) return;
+          let response: SeedSampleSharedResponse;
+          try {
+            response = await apiClient.getSampleStatus();
+          } catch (err) {
+            console.error('[useDataCatalog] getSampleStatus failed:', err);
+            return;
+          }
+          applyStatus(response);
+          if (response.status === 'ready' || sampleStatusCancelled.current) return;
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+          return poll();
+        };
+
+        await poll();
+      })();
+      return;
+    }
 
     (async () => {
       // Collect changes by doc ID so we can merge into the latest definition
@@ -302,27 +372,32 @@ export function useDataCatalog(
     if (!currentDef) return;
 
     const now = new Date().toISOString();
-    const docs: CatalogDocumentEntry[] = response.results
+    const sampleDocs: CatalogDocumentEntry[] = response.results
       .filter((r) => r.fileId)
       .map((r): CatalogDocumentEntry => ({
         id: r.fileId!,
         fileName: r.fileName,
         mimeType: r.mimeType || 'application/octet-stream',
-        sizeBytes: 0,
+        sizeBytes: Number(r.fileSize) > 0 ? Number(r.fileSize) : 0,
         sourceType: 'sample',
         processingStatus: r.isIndexed ? 'success' : 'processing',
         documentType: (r.fileType === 'pnid' ? 'pnid' : r.fileType === 'timeseries' ? 'timeseries' : 'document') as CatalogDocumentType,
         intuigenceDocumentId: r.fileId!,
         intuigenceFileId: r.fileId!,
+        intuigenceGraphId: r.graphId ?? null,
         errorMessage: null,
         lastUpdated: now,
         createdAt: now,
         addedBy: 'Sample Data',
       }));
 
+    // Preserve any non-sample docs the user has already added so a later
+    // "Load example data" call doesn't wipe their real uploads.
+    const nonSampleDocs = currentDef.documents.filter((d) => d.sourceType !== 'sample');
+
     const updatedDef = recomputeStats({
       ...currentDef,
-      documents: docs,
+      documents: [...nonSampleDocs, ...sampleDocs],
       isSampleMode: true,
       sampleWorkspaceId: response.workspaceId,
     });
@@ -336,45 +411,46 @@ export function useDataCatalog(
     if (!apiClient) throw new Error('API client not ready');
     const response = await apiClient.seedSampleDataShared();
 
-    if (response.status === 'ready') {
-      populateSampleDocs(response);
-      return response.results.length;
-    }
+    // Write the sample doc rows + isSampleMode into the definition immediately,
+    // regardless of whether processing has finished. The list view should
+    // render with per-file status right away; the reconcile effect will poll
+    // getSampleStatus and flip rows to 'success' as files complete.
+    populateSampleDocs(response);
+    // Re-arm both reconcile latches so the freshly-seeded sample docs get a
+    // sample-status poll. statusRefreshDone gates the effect (latched on
+    // first run for the mounted item); sampleStatusCancelled gates the poll
+    // itself (set true by exitSampleMode and only otherwise reset on
+    // mount/item change). Without both, an exit-then-reseed in the same
+    // mount leaves any not-yet-indexed row stuck on 'processing' until
+    // the item is reloaded.
+    sampleStatusCancelled.current = false;
+    statusRefreshDone.current = false;
+    return response.results.length;
+  }, [apiClient, populateSampleDocs]);
 
-    // Processing or just accepted — poll until ready
-    if (response.status === 'accepted') {
-      // For 'accepted', also track files for live status in the UI
-      for (const r of response.results.filter((r) => r.fileId && r.status === 'accepted')) {
-        processing.trackSeedFile(
-          r.fileId!,
-          r.fileName,
-          r.mimeType || 'application/octet-stream',
-          r.fileType || 'document',
-        );
-      }
-    }
-
-    // Poll until all files are ready
-    const poll = async (): Promise<number> => {
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-      const status = await apiClient.getSampleStatus();
-      if (status.status === 'ready') {
-        populateSampleDocs(status);
-        return status.results.length;
-      }
-      return poll();
-    };
-
-    // Mark sample mode on the definition immediately so the UI can show indicators
+  // Local-only exit. Drops sample doc entries + clears sample-mode markers
+  // from this item's saved definition. Shared backend rows under SAMPLE_TENANT_ID
+  // are untouched (they belong to every user). The reconcile poll is cancelled
+  // so a stale fetch can't write sample rows back after exit.
+  const exitSampleMode = useCallback(async () => {
     const currentDef = definitionRef.current;
-    if (currentDef) {
-      const updatedDef = { ...currentDef, isSampleMode: true, sampleWorkspaceId: response.workspaceId };
-      definitionRef.current = updatedDef;
-      saveDefinitionRef.current(updatedDef).catch(() => {});
-    }
+    if (!currentDef) return;
 
-    return poll();
-  }, [apiClient, processing, populateSampleDocs]);
+    sampleStatusCancelled.current = true;
+    statusRefreshDone.current = false; // let the effect rerun for non-sample docs
+
+    const nonSampleDocs = currentDef.documents.filter((d) => d.sourceType !== 'sample');
+    const updatedDef = recomputeStats({
+      ...currentDef,
+      documents: nonSampleDocs,
+      isSampleMode: false,
+      sampleWorkspaceId: undefined,
+    });
+    definitionRef.current = updatedDef;
+    await saveDefinitionRef.current(updatedDef).catch((err) => {
+      console.error('[useDataCatalog] Exit sample mode save failed:', err);
+    });
+  }, []);
 
   const removeDocument = useCallback(async (ids: string[]) => {
     const currentDef = definitionRef.current;
@@ -443,6 +519,7 @@ export function useDataCatalog(
     ingestFromEventHouse,
     syncEventHouse,
     seedSampleData,
+    exitSampleMode,
     removeDocument,
     activeFiles: processing.activeFiles,
     removeActiveFile: processing.removeFile,
